@@ -129,23 +129,74 @@ message("llenar todas la casillas y en Approved Applications agregar Approved Ap
 #si no lee probar con este comando de abajo
 #install.packages(c("sf", "terra"), type = "source")
 # blackmarbler::bm_extract descarga y calcula el promedio de luz por municipio 
-luces_mensuales_panel <- blackmarbler::bm_extract(
-  roi_sf = municipios_sf, # mapa de municipios de geoBoundaries
-  product_id = "VNP46A3", #identificador de VIIRS para datos mensuales
-  date = seq(from = as.Date("2020-01-01"), to = as.Date("2025-12-01"), by = "month"), # Corregido: el argumento oficial es date
-  bearer = Sys.getenv("NASA_EARTHDATA_TOKEN"), # token en  .Renviron (usethis)
-  output_dir = here::here("dataset"), # Corregido: ruta de tu carpeta unificada sin crear subcarpetas
-  aggregation_fun = "mean", # promedio de brillo luminics del municipio
-  keep_downloaded_files = TRUE # datos esticos y crudos en el disco duro
-)
 
-#formato de la tabla resultante para integrarla a tu panel final
-luces_limpias <- luces_mensuales_panel %>%
-  sf::st_drop_geometry() %>%
-  dplyr::rename(
-    id_municipio = shapeID,
-    luces_nocturnas = nft_mean
-  ) %>%
-  dplyr::arrange(id_municipio, date)
+ruta_csv_final <- here::here("csv", "luces_nocturnas_municipales.csv")
+if (!file.exists(ruta_csv_final)) {
+  
+  message("no existe el cvs, cargar datos")
+  
+  secuencia_fechas <- seq(from = as.Date("2020-01-01"), to = as.Date("2025-12-01"), by = "month")
+  
+  #lista
+  lista_meses <- list()
+  
+  #bucle procesa mes a mes de forma independiente para evitar colapsos
+  for (i in seq_along(secuencia_fechas)) {
+    fecha_i <- secuencia_fechas[i]
+    
+    #tryCatch evita que un error 401/404 de la NASA detenga todo el script
+    lista_meses[[i]] <- tryCatch({
+      
+      extrac_mes <- blackmarbler::bm_extract(
+        roi_sf = municipios_sf, #mapa de municipios de geoBoundaries
+        product_id = "VNP46A3", #identificador de VIIRS para datos mensuales
+        date = fecha_i, 
+        bearer = Sys.getenv("NASA_EARTHDATA_TOKEN"), # token en  .Renviron (usethis)
+        output_dir = here::here("dataset"), 
+        aggregation_fun = "mean", #promedio de brillo luminics del municipio
+        keep_downloaded_files = TRUE #datos esticos y crudos en el disco duro
+      )
+      
+      #si el mes no existe o da NULL, devolvemos una estructura vacía controlada
+      if (is.null(extrac_mes)) {
+        stop("Mes sin datos")
+      }
+      
+      extrac_mes
+      
+    }, error = function(e) {
+      #si falla el mes se genera la estructura vacía con NA para no romper el panel
+      df_error <- data.frame(
+        shapeID = municipios_sf$shapeID,
+        date = fecha_i,
+        nft_mean = NA
+      )
+      return(df_error)
+    })
+  }
+  
+  #unir todos los meses 
+  luces_mensuales_panel <- dplyr::bind_rows(lista_meses)
+  
+  luces_limpias <- luces_mensuales_panel %>%
+    sf::st_drop_geometry() %>%
+    dplyr::rename(
+      id_municipio = shapeID,
+      luces_nocturnas = nft_mean
+    ) %>%
+    dplyr::arrange(id_municipio, date)
+  
+  utils::write.csv(luces_limpias, file = ruta_csv_final, row.names = FALSE)
+  
+  #rm(luces_mensuales_panel, luces_limpias)
+}
+
+luces_limpias <- utils::read.csv(ruta_csv_final)
 
 head(luces_limpias, 15)
+#ver un grafico turkudito
+
+capa_luces <- terra::rast(here::here("dataset", "VNP46A3.A2020001.h09v07.002.2025133143743.h5"), subds = 1)
+
+terra::plot(capa_luces, main = "Luminosidad Satelital VIIRS", col = terrain.colors(100))
+
