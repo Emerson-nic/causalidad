@@ -16,8 +16,9 @@ if(FALSE){
   luces_nocturnas se obtendra del paquete blackmarbler del satelite VIIRS 
   de la NASA
   poblacion_estimada se usa el paquete de WorldPop de la universidad de 
-  Southampton
-  
+  Southampton, paquete no me funciona no responde dice 
+  'The geodata server seems to be temporary out of service. 
+  Please try again later.'
   "
 }
 
@@ -30,28 +31,45 @@ pacman::p_load(usethis, #para .Renviron igual que .env de python
                sf, #para manejar vectores por municipios
                terra, #para manejar raters poblacion
                exactextractr, #para resumir rasters 
-               dplyr
-               )
+               dplyr,
+               blackmarbler, #conectarse a la api de la nasa
+               here #para gestionar rutas relativas desde la raiz del proyecto de forma segura
+)
 
 #obtener poblacion estimada y mapa ----
 #municipos de managua 
-#level = 2 es la division por municipios 
-municipios_raw <- gadm(country = "NIC", 
-                       level = 2, 
-                       path = tempdir(),
-                       version = "latest")
 
-municipios_sf <- st_as_sf(municipios_raw)
+#mapa descargado manualmente en la repo
+
+message("Fuente limites geograficos (ADM2):")
+message("Proyecto: geoBoundaries (SNA Lab) - Universidad William & Mary (EE.UU.)")
+message("Repositorio de datos de código abierto de alta disponibilidad")
+message("Link oficial de descarga:")
+message("https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/main/releaseData/gbOpen/NIC/ADM2/geoBoundaries-NIC-ADM2.geojson")
+destino_geojson <- here::here("dataset", "geoBoundaries-NIC-ADM2.geojson")
+municipios_sf <- sf::st_read(destino_geojson, quiet = TRUE) %>%
+  dplyr::select(
+    NAME_1 = shapeID, 
+    NAME_2 = shapeName
+  )
 
 #datos de WorldPop 
-message("descargando poblacion de WorldPop")
-poblacion_raster <- population(year = 2020, 
-                               country = "NIC", 
-                               path = tempdir())
+message("obtner poblacion de WorldPop ajustado por la onu")
+
+# Ruta local directa al raster de poblacion ajustado con el nombre real del archivo
+destino_raster <- here::here("dataset", "nic_ppp_2020_UNadj.tif")
+
+message("Fuente de datos WorldPop")
+message("Universidad de Southampton (Reino Unido)")
+message("Link de descarga directa para el navegador:")
+message("https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/NIC/nic_ppp_2020_UNadj.tif")
+
+message("Cargando malla de poblacion de forma local...")
+poblacion_raster <- terra::rast(destino_raster)
 
 # exact_extract lee los pixeles de WorldPop que caen dentro de 
 #cada municipio y los suma
-municipios_sf$poblacion_estimada <- exact_extract(
+municipios_sf$poblacion_estimada <- exactextractr::exact_extract(
   poblacion_raster, 
   municipios_sf, 
   fun = "sum",
@@ -60,14 +78,74 @@ municipios_sf$poblacion_estimada <- exact_extract(
 
 #limpieza
 tabla_poblacion_municipal <- municipios_sf %>%
-  st_drop_geometry() %>%
-  select(
+  sf::st_drop_geometry() %>%
+  dplyr::select(
     departamento = NAME_1,
     municipio = NAME_2,
     poblacion_estimada
   ) %>%
-  arrange(departamento, municipio)
+  dplyr::arrange(departamento, municipio)
 
 head(tabla_poblacion_municipal, 15)
 
+print(head(tabla_poblacion_municipal, 15))
 
+print('La poblacion es exacta')
+print('año 2020 del dataset')
+
+#expandir mensualmente para un dataset mas grande ----
+# secuencia de tiempo mensual 5 años
+meses_panel <- dplyr::tibble(
+  fecha = seq(from = as.Date("2020-01-01"), to = as.Date("2024-12-01"), by = "month")
+)
+
+# Multiplicamos los 153 municipios por los 60 meses para generar la estructura grande
+dataset_mensual <- tabla_poblacion_municipal %>%
+  tidyr::crossing(meses_panel)
+
+print(paste("total de filas generadas:", nrow(dataset_mensual)))
+print(head(dataset_mensual, 15))
+
+if(FALSE){
+  "
+  
+  Los numeros repetidos no es un error, esto de debe a que la poblacion
+  cambia de forma identica y muy lenta año con año, el efecto 
+  fijo de Municipio absorbe la escala estructural del territorio, tambien
+  se evita multicolinalidad artificial
+  "
+  
+}
+
+#obtener luces_nocturnas del 2020 a 2025 mensualmente ----
+message("Fuente de datos:")
+message("Satélite: Suomi-NPP / VIIRS (Producto: Black Marble VNP46A3/VNP46A4)")
+message("Institución: NASA (National Aeronautics and Space Administration) - EE.UU.")
+message("Se necesita una api les recomiendo usar un archivo .Renviron y pegar su api con el mismo nonbre que se usa en el script")
+message("Link para el api/token(es gratis): https://urs.earthdata.nasa.gov/")
+message("llenar todas la casillas y en Approved Applications agregar Approved Applications")
+
+# blackmarbler::bm_extract descarga y calcula el promedio de luz por municipio 
+#si no lee probar con este comando de abajo
+#install.packages(c("sf", "terra"), type = "source")
+# blackmarbler::bm_extract descarga y calcula el promedio de luz por municipio 
+luces_mensuales_panel <- blackmarbler::bm_extract(
+  roi_sf = municipios_sf, # mapa de municipios de geoBoundaries
+  product_id = "VNP46A3", #identificador de VIIRS para datos mensuales
+  date = seq(from = as.Date("2020-01-01"), to = as.Date("2025-12-01"), by = "month"), # Corregido: el argumento oficial es date
+  bearer = Sys.getenv("NASA_EARTHDATA_TOKEN"), # token en  .Renviron (usethis)
+  output_dir = here::here("dataset"), # Corregido: ruta de tu carpeta unificada sin crear subcarpetas
+  aggregation_fun = "mean", # promedio de brillo luminics del municipio
+  keep_downloaded_files = TRUE # datos esticos y crudos en el disco duro
+)
+
+#formato de la tabla resultante para integrarla a tu panel final
+luces_limpias <- luces_mensuales_panel %>%
+  sf::st_drop_geometry() %>%
+  dplyr::rename(
+    id_municipio = shapeID,
+    luces_nocturnas = nft_mean
+  ) %>%
+  dplyr::arrange(id_municipio, date)
+
+head(luces_limpias, 15)
