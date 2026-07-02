@@ -11,6 +11,10 @@ if(FALSE){
   Y: luces_nocturnas como sust del imae
   x: densidad_vial (cerreteras).
   z (control): poblacion_estimada 
+  imae (tendencia ciclo): se utiliza para hacer una serie de tiempo la densidad_vial
+  
+  con la densidad vial sera hara una interpolacion temporal se asume que la 
+  desidad_vial es una dosis estructural
   
   para desindad_vial se usara OpenStreetMap (OSM) y su libreria
   luces_nocturnas se obtendra del paquete blackmarbler del satelite VIIRS 
@@ -32,7 +36,9 @@ pacman::p_load(usethis, #para .Renviron igual que .env de python
                terra, #para manejar raters poblacion
                exactextractr, #para resumir rasters 
                dplyr,
+               readxl,
                blackmarbler, #conectarse a la api de la nasa
+               osmdata, #para las carreteras 
                here #para gestionar rutas relativas desde la raiz del proyecto de forma segura
 )
 
@@ -135,54 +141,45 @@ if (!file.exists(ruta_csv_final)) {
   
   message("no existe el cvs, cargar datos")
   
-  secuencia_fechas <- seq(from = as.Date("2020-01-01"), to = as.Date("2025-12-01"), by = "month")
+  # Creamos la secuencia de meses
+  meses_nasa <- seq(from = as.Date("2020-01-01"), to = as.Date("2025-12-01"), by = "month")
+  lista_luces <- list() # Lista vacia para guardar mes a mes
   
-  #lista
-  lista_meses <- list()
-  
-  #bucle procesa mes a mes de forma independiente para evitar colapsos
-  for (i in seq_along(secuencia_fechas)) {
-    fecha_i <- secuencia_fechas[i]
+  # Bucle for para blindar la descarga contra caidas 401/404
+  for (i in seq_along(meses_nasa)) {
+    mes_actual <- meses_nasa[i]
+    message(paste("procesando mes:", mes_actual))
     
-    #tryCatch evita que un error 401/404 de la NASA detenga todo el script
-    lista_meses[[i]] <- tryCatch({
-      
-      extrac_mes <- blackmarbler::bm_extract(
+    # tryCatch protege el codigo: si un mes falla, devuelve NULL pero no detiene el script
+    resultado_mes <- tryCatch({
+      blackmarbler::bm_extract(
         roi_sf = municipios_sf, #mapa de municipios de geoBoundaries
         product_id = "VNP46A3", #identificador de VIIRS para datos mensuales
-        date = fecha_i, 
+        date = mes_actual, # Procesamos solo un mes a la vez
         bearer = Sys.getenv("NASA_EARTHDATA_TOKEN"), # token en  .Renviron (usethis)
         output_dir = here::here("dataset"), 
         aggregation_fun = "mean", #promedio de brillo luminics del municipio
         keep_downloaded_files = TRUE #datos esticos y crudos en el disco duro
       )
-      
-      #si el mes no existe o da NULL, devolvemos una estructura vacía controlada
-      if (is.null(extrac_mes)) {
-        stop("Mes sin datos")
-      }
-      
-      extrac_mes
-      
     }, error = function(e) {
-      #si falla el mes se genera la estructura vacía con NA para no romper el panel
-      df_error <- data.frame(
-        shapeID = municipios_sf$shapeID,
-        date = fecha_i,
-        nft_mean = NA
-      )
-      return(df_error)
+      message(paste("error o sin datos satelitales en:", mes_actual, "- saltando al siguiente"))
+      return(NULL)
     })
+    
+    if (!is.null(resultado_mes)) {
+      lista_luces[[i]] <- resultado_mes
+    }
   }
   
-  #unir todos los meses 
-  luces_mensuales_panel <- dplyr::bind_rows(lista_meses)
+  # Unimos todos los meses procesados en una sola tabla
+  luces_mensuales_panel <- dplyr::bind_rows(lista_luces)
   
+  #formato de la tabla resultante para integrarla a tu panel final
   luces_limpias <- luces_mensuales_panel %>%
     sf::st_drop_geometry() %>%
     dplyr::rename(
-      id_municipio = shapeID,
-      luces_nocturnas = nft_mean
+      id_municipio = NAME_1, #cambiamos shapeID por NAME_1 que es su nombre actual
+      luces_nocturnas = ntl_mean
     ) %>%
     dplyr::arrange(id_municipio, date)
   
@@ -194,9 +191,150 @@ if (!file.exists(ruta_csv_final)) {
 luces_limpias <- utils::read.csv(ruta_csv_final)
 
 head(luces_limpias, 15)
-#ver un grafico turkudito
 
-capa_luces <- terra::rast(here::here("dataset", "VNP46A3.A2020001.h09v07.002.2025133143743.h5"), subds = 1)
+#obtener la densidad_vial ----
+message("Fuente de datos: OpenStreetMap (Formato GeoJSON)")
+  
+#se descargo de https://overpass-turbo.eu/
+#con el siguiente script en la pagina:
+# [out:json][timeout:60];
+# area["ISO3166-1"="NI"]->.searchArea;
+# (
+#   // se pide solo lineas planas (ways) para evitar saturacion, incluyendo tramos largos
+#   way["highway"~"motorway|trunk|primary|secondary|tertiary|unclassified"](area.searchArea);
+# );
+# out body;
+# >;
+# out skel qt;
+#pesa alrededor de 80 mb el json, el pagina web se pone lenta al ejecutar cuidado
 
-terra::plot(capa_luces, main = "Luminosidad Satelital VIIRS", col = terrain.colors(100))
+#cargar mapas
+ruta_municipios <- "dataset/geoBoundaries-NIC-ADM2.geojson"
+ruta_raw_geojson <- "dataset/export.geojson"
+ruta_vial_optimizada <- "dataset/nicaragua_carreteras.rds"
 
+#cargar municipios
+municipios_sf <- sf::st_read(ruta_municipios, quiet = TRUE)
+
+#optimizacion crear archivo .rds si no existe
+if (!file.exists(ruta_vial_optimizada)) {
+  message("de GeoJSON a formato binario .rds")
+  
+  carreteras_raw <- sf::st_read(ruta_raw_geojson, quiet = TRUE)
+  carreteras_sf <- carreteras_raw %>% 
+    sf::st_transform(crs = sf::st_crs(municipios_sf)) %>% 
+    sf::st_make_valid() 
+  
+  saveRDS(carreteras_sf, ruta_vial_optimizada)
+  rm(carreteras_raw) #borramos el pesado de la memoria RAM
+}
+
+carreteras_sf <- readRDS(ruta_vial_optimizada)
+
+#calcular densidad vial por municipio
+#interseccion espacial dog
+carreteras_municipio <- sf::st_intersection(carreteras_sf, municipios_sf)
+
+#calcular longitud en km por segmento y luego sumar por municipio
+carreteras_resumen <- carreteras_municipio %>%
+  dplyr::mutate(longitud_km = sf::st_length(.) / 1000) %>%
+  sf::st_drop_geometry() %>% #borrar la geografia para que sea un dataframe plano
+  dplyr::group_by(shapeName) %>% # Usamos el nombre original que está en tu RAM ahorita
+  dplyr::summarise(km_vial = sum(as.numeric(longitud_km)))
+
+#unir
+municipios_sf <- municipios_sf %>%
+  dplyr::mutate(area_km2 = as.numeric(sf::st_area(.) / 1e6)) %>%
+  dplyr::left_join(carreteras_resumen, by = "shapeName") %>% # Unimos usando shapeName
+  dplyr::mutate(densid_vial = km_vial / area_km2) %>%
+  tidyr::replace_na(list(densid_vial = 0, km_vial = 0))
+
+#guardar
+densidad_vial_csv <- municipios_sf %>%
+  sf::st_drop_geometry() %>%
+  # Aquí hacemos la magia: renombramos shapeName a "municipio" para que cruce perfecto con WorldPop
+  dplyr::select(municipio = shapeName, area_km2, km_vial, densid_vial) 
+
+head(municipios_sf %>% dplyr::select(shapeName, densid_vial), 15)
+head(densidad_vial_csv, 15)
+
+readr::write_csv(densidad_vial_csv, here::here("csv", "densidad_vial_municipales.csv"))
+
+#IMAE  ----
+message("Fuente: BCN como archivo xlsx")
+
+ruta_imae_excel <- "dataset/Cuadros_de_salida_IMAE.xlsx"
+
+imae_raw <- readxl::read_excel(ruta_imae_excel, 
+                               sheet = "IMAE", 
+                               skip = 30, 
+                               col_names = FALSE) %>%
+  setNames(c("anio", "mes", 
+             "orig_m", "orig_ia","orig_acum", "orig_prom", "_", 
+             "sa_m", "sa_im" ,"sa_ia", "__", 
+             "tc_m", "tc_im","tc_ia", "tc_acum_anual"))
+
+#se usa la serie tendencia ciclo
+imae_ts_df <- imae_raw %>%
+  dplyr::select(tc_m) %>% 
+  dplyr::mutate(
+    imae = as.numeric(tc_m),
+    fecha = seq(from = as.Date("2006-01-01"), by = "month", length.out = dplyr::n())
+  ) %>%
+  dplyr::select(fecha, imae) %>%
+  tidyr::drop_na()
+
+
+print("nombres imae:")
+print(names(imae_ts_df))
+
+print("imae")
+print(head(imae_ts_df, 12))
+
+#unirficar todo ----
+message("unificar todo dog")
+
+df_luces <- readr::read_csv("csv/luces_nocturnas_municipales.csv")
+df_vial  <- readr::read_csv("csv/densidad_vial_municipales.csv")
+
+#convertir la variable luces a clase date
+df_luces <- df_luces %>% 
+  dplyr::mutate(fecha = as.Date(date))
+
+#cruzar las luces con la densidad_vial 
+columna_llave_luces <- "NAME_2"
+columna_llave_vial  <- "shapeName"
+
+panel_acumulado <- df_luces %>%
+  dplyr::left_join(df_vial, by = setNames(columna_llave_vial, columna_llave_luces))
+
+#cruzar el panel 
+panel_completo <- panel_acumulado %>%
+  dplyr::left_join(imae_ts_df, by = "fecha") %>%
+  tidyr::drop_na(imae) 
+
+#multiplicar la densidad_vial fija por el IMAE  del mes correspondiente
+panel_completo <- panel_completo %>%
+  dplyr::mutate(
+    interaccion_causal = densid_vial * imae
+  )
+readr::write_csv(panel_completo, "csv/panel_completo.csv")
+
+#cvs limpio ----
+
+#recuerdece que interaccion_causal = densid_vial * imae
+panel_final <- panel_completo %>%
+  dplyr::select(
+    municipio = NAME_2, #nombre del municipio 
+    fecha,                
+    luces_nocturnas, #y
+    densid_vial, #infraestructura 
+    imae, #shock temporal (tendencia ciclo)
+    interaccion_causal, #Tu variable de interés (densidad_vial)
+    area_km2 #control geografico
+  )
+
+print(names(panel_final))
+head(panel_final, 10)
+
+readr::write_csv(panel_final, "csv/panel_final.csv")
