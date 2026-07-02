@@ -7,6 +7,9 @@ actividad_economica_via.Rproj
 .RData
 .Rhistory
 
+#html
+README.html
+
 #imagenes satelitales y rasters pesados de la NASA y WorldPop
 dataset/*.tif
 dataset/*.h5
