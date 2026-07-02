@@ -26,3 +26,6 @@ grafico_0_imae_nacional.pdf
 grafico_1_estrato_alto.pdf
 grafico_2_estrato_medio.pdf
 grafico_3_estrato_bajo.pdf
+
+#cvs
+csv/*.csv
