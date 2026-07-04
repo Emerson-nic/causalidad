@@ -20,7 +20,13 @@ if(F){
   nW, cm cuadrado o sr
   
   en densidad_vial significa por ejemlo un valor promedio de 0.31 en niveles
-  que hay 0.31 km cuadrados de superficie
+  que hay 0.31 km carretera transitable
+  desidadad_vial = km/km cuadrado
+  
+  por ejemplo managua tiene un valor de 2, se puede concluir dos cosas
+  en promedio hay 2 caminos posibles para llegar al destino y que no existen
+  comunidades aisladas, tambien que la longitud lineal de carretera es el doble
+  que su area en carretera
   
   interpretacion del interaccion_causal (densidad_vial * imae):
   representa la dosis de ciclo economico nacional promedio a la que esta 
@@ -116,6 +122,17 @@ modelo_twfe_poisson <- fixest::fepois(
 
 summary(modelo_twfe_poisson)
 
+#pisson como poblacion constante
+modelo_twfe_poisson_poblacion <- fixest::fepois(
+  luces_nocturnas ~ interaccion_log + interaccion_area | municipio + fecha + poblacion_estimada,
+  data = panel_final,
+  cluster = ~municipio
+)
+#las constante son lo mismo en realidad es peor el modelo el bic = 13,349
+#mas alto que 11,935 es mejor sin poblacion estimada con constante
+
+summary(modelo_twfe_poisson_poblacion)
+
 #poisson pero cambiado area por poblacion
 modelo_twfe_poisson_pob <- fixest::fepois(
   luces_nocturnas ~ interaccion_log + interaccion_pob | municipio + fecha,
@@ -141,15 +158,6 @@ fixest::etable(
   ),
   headers = c("clasicos", "robustos (White)", "clustered (Arellano)")
 )
-
-if(F){
-  "
-  
-  interpretacion del tablas comparativas:
-  
-  
-  "
-}
 
 #grafico de efectos marginales
 panel_grafico <- panel_final %>% 
@@ -217,24 +225,64 @@ panel_combinado <- grafico_marginal + grafico_dispersion
 print(panel_combinado)
 ggsave("Graficos/panel_efectos_y_controles_1x2.pdf", plot = panel_combinado, width = 11, height = 4.5, dpi = 300)
 
+
 #graficos de residuos vs valores ajustados
 residuos_df <- data.frame(
-  Ajustados = fitted(modelo_twfe_log),
-  Residuos = residuals(modelo_twfe_log)
+  Ajustados = fitted(modelo_twfe_poisson),
+  Residuos = residuals(modelo_twfe_poisson)
 )
 
 dist_residuo_grafico <- ggplot(residuos_df, aes(x = Ajustados, y = Residuos)) +
   geom_point(alpha = 0.2, color = "#2563EB") +
   geom_hline(yintercept = 0, color = "red", linetype = "dashed", size = 1) +
   labs(
-    title = "Distribución de Residuos del Modelo TWFE",
+    title = "Distribución de Residuos del Modelo TWFE Poisson",
     # subtitle = "Ausencia de patrones no lineales severos tras controlar por Efectos Fijos",
-    x = "Valores Ajustados (Log Luces)",
+    x = "Valores Ajustados (Luces)",
     y = "Residuos del Modelo"
   ) 
 
 print(dist_residuo_grafico)
 ggsave("Graficos/distribucion_residuos_twfe.pdf", plot = dist_residuo_grafico, width = 9, height = 4, dpi = 300)
+
+if(F){
+  "
+  
+  interpretacion del primer grafico en estaccion:
+  el panel a el grafico en todo momento es significativo se ve la tendencia
+  del beta con su densidad vial es decir en municipios con infraestructura vial
+  casi nula, el efecto neto es positivo entonces ante un shock del 
+  imae (ya sea positivo o negativo), la economaa local amplifica el ciclo de 
+  forma lineal y descontrolada
+  
+  hay que ver las sonas donde estan desprotegido y la economia puede mejorar 
+  pero un ejemplo rapido el el municipio del sauce tiene un area de 700.26
+  km cuadrado y ellos solo tiene una densidadl vial de 0.31 km sobre km
+  cuadrado ellos tienen rango para mejorar su economia local teoricamente 
+  para mejorar su economia deberia diversificar su area para no que 
+  las comunidades aisladas aporten positivamente a su economia *nota:
+  hay que hacer un estudio aparte para saber como distrubuir correctamente
+  la carretera para que conecta totalmente el area y la densidad vial es decir
+  que la densidad vial sea 1
+  
+  panel b: aqui se ve una linea te tendencia clara osea que se aisla
+  el efecto de carretera (desindad vial) y el tamaño geografico (area municipio) 
+  tambien entre mas area menos densidad vial 
+  
+  aqui las bandade de confianza es la incertidumbre de la relacion geometrica
+  entre las dos variables geonetricas 
+  
+  aqui se ve asimetria de area es decir hay areas muy enormes con poca o media densidad
+  vial, ademas si el tamaño fuera un motor economico los municipios mas grande deberias
+  ser ma iluminados pero no es significativo, el efecto multiplicador economico
+  es la densidad y conectividad vial 
+  
+  interpretacion de distribucion de residuos TWFE
+  no le entiendo muy bien hay que ver pero se ve como la mayoria esta en casi 0
+  y existe mucho outlier
+  
+  "
+}
 
 #otro modelo para outliers mediante residuos studentizados
 
@@ -280,6 +328,49 @@ fixest::etable(
   modelo_clean, #log-lineal (sin outliers)
   headers = c("OLS", "TWFE Principal", "Poisson (PPML)", "TWFE (Sin Outliers)")
 )
+
+if(F){
+  "
+  
+  interpretacion del tablas comparativas:
+  la primera columna son supuesto clasiscos, en la segunda columna contiene
+  errores robusto white corrige heterocedasticidad y la ultima columan que
+  el modelo principal este corrige heterocedaticidad y autocorrelacion, en la 
+  cuarta columa es usa los errores de la 2ra columan pero sin outlier, los 
+  resuldatos de los betas la 1ra, 2da y 4ta columan son de hecho casi lo mismo
+  pero para este estudio se usara el modelo poisson 
+  
+  el valor -0.8472 es amortiguador antes shocks macroeconomicos del pais,
+  es decir ante el aumento del 1% en la intensidad de la interaccion vial de 
+  un municipio reduce el 0.8472% en la sensibilidad (volatilidad) de las luces 
+  nocturnas ante el imae. De manera mas sencilla, más carreteras, la economía
+  local se vuelve más autónoma, estable y protegida contra las crisis nacionales.
+  
+  Por ejemplo Managua, Estelí o Masaya tienen alta densidad vial entonces los
+  mercados estan super interconectados. este coeficiente negativo dice que gracias
+  a esta infraestructura, su economia interna son mas eficiente de las que tienen menos
+  densidad vial como siuna que estan expuesto a sufrir mas si el transporte nacional
+  se encarece
+  
+  ante esto me pregunte, si ante este valor negativo entonces la economia esta 
+  protegida pero ante shock posivos tambien experimente un crecimento 
+  restrictivo? si
+  
+  este coeficiente si demuestra que las carreteras general estabilidad estructural
+  y resilencia, pero no potencia aqui ejemplos con escenerios:
+  
+  La economia esta en recesion (shocks negativo en el imae):
+  significa que si el imae nacional se desploma un 10%, un municipio bien 
+  conectado (alta densidad vial) no se desploma 10% completo, sino mucho menos 
+  (cae alrededor de 8.47%) las carreteras protegen el empleo local, permiten 
+  que los productos sigan fluyendo a mercados vecinos. Es un amortiguador
+  
+  si el imae sube un 10% las zonas, el municipio bien conectado igual solo 
+  al rededor del 8.472%, crece por su propio ritmo estructural
+  
+  "
+}
+
 # el mae afecta a las luces de nicaragua? ----
 
 #filtro para los inf
@@ -321,26 +412,46 @@ fixest::etable(
   #drop = "tendencia_lineal" #ocultar la tendencia para enfocarse en el imae
 )
 
+if(F){
+  "
+  interpretacion de columna izquierda:
+  por cada 1% que crece en el imae, las luces nocturnas en los municipios 
+  incrementa en promedio un 2.105%
+  
+  interpretacion columna derecha:
+  aqui se limpia la estacionariedad (mes_del_anio) del aumento de luces en 
+  diciembre y se agrego una tendencia (el satelite sufre de calibraciones, 
+  esta variable busca si existe tendenca por parte del satelite)
+  una vez limpio
+  
+  un incremento del 1% en el ime genera un incremento del 6.141% en el 
+  brillo de las luces y en la tendencia es un efecto muy pequeño pero todas
+  las variables significativa al 1% entonces la tendencia es decreciente en la
+  radiancia promedio 
+  
+  la intencion de esto era demostrar que es un buen proxy las luces_nocturnas
+  recuerde que esto solo es correlacion
+  "
+}
+
 
 #placebo permutacion de densid_vial entre municipios ----
 
 #si el resultado es genuino entonces el coeficiente real debe estar
 #en los extremos de la distribucion placebo
 set.seed(42)
-n_perm <- 200
+n_perm <- 1000
 
 panel_placebo <- panel_final %>%
-  dplyr::mutate(log_imae = log(imae)) %>%
-  dplyr::filter(is.finite(log_luces), is.finite(interaccion_log),
-                is.finite(interaccion_area))
+  dplyr::mutate(log_imae = log(imae))
 
 #mapa de municipio
 mapa_densidad <- panel_placebo %>%
   dplyr::distinct(municipio, densid_vial)
 
 #comparar coeficientes
-coef_real <- stats::coef(modelo_twfe_log)["interaccion_log"]
-coefs_placebo <- numeric(n_perm)
+coef_real <- stats::coef(modelo_twfe_poisson)["interaccion_log"]
+coefs_placebo_poisson <- numeric(n_perm)
 
 message("permutando densid_vial entre municipios (", n_perm, " iteraciones)")
 
@@ -348,27 +459,29 @@ for (i in seq_len(n_perm)) {
 
   #reasignar densid_vial al azar entre municipios
   mapa_shuffled <- mapa_densidad %>%
-    dplyr::mutate(densid_vial = sample(densid_vial, replace = FALSE))
+    dplyr::mutate(densid_vial_falsa = sample(densid_vial, replace = FALSE))
 
   panel_p <- panel_placebo %>%
     dplyr::select(-densid_vial) %>%
     dplyr::left_join(mapa_shuffled, by = "municipio") %>%
-    dplyr::mutate(interaccion_log_p = densid_vial * log_imae)
+    dplyr::mutate(
+      interaccion_log_p = log(densid_vial_falsa) * log_imae 
+    )
 
-  mod_p <- fixest::feols(
-    log_luces ~ interaccion_log_p + interaccion_area | municipio + fecha,
+  mod_p <- fixest::fepois(
+    luces_nocturnas ~ interaccion_log_p + interaccion_area | municipio + fecha,
     data = panel_p,
     cluster = ~municipio,
     warn = FALSE, notes = FALSE
   )
 
-  coefs_placebo[i] <- stats::coef(mod_p)["interaccion_log_p"]
-
-  if (i %% 100 == 0) message("  ", i, "/", n_perm)
+  coefs_placebo_poisson[i] <- stats::coef(mod_p)["interaccion_log_p"]
+  
+  if (i %% 100 == 0) message("   Progreso: ", i, "/", n_perm)
 }
 
 #valor p
-p_placebo <- mean(abs(coefs_placebo) >= abs(coef_real))
+p_placebo_poisson <- mean(abs(coefs_placebo_poisson) >= abs(coef_real))
 
 message("coeficiente real") 
 print(round(coef_real,4))
@@ -379,8 +492,29 @@ print(round(sd(coefs_placebo), 4))
 message("valor p-value")
 print(p_placebo)
 
-#valor significativo del placebo
+if(F){
+  "
+  
+  interpretacion de la preuba placebo por permutacion de matriz espacial:
+  la prueba placebo sirva para demostrar si el resultado beta es 
+  pura casualidad matematica o ruido geografico, entonces la prueba asigna
+  al azar carreteras y municipios equivocados (iteraciones igual a 1000)
+  
+  aqui se busca que los resultados del beta sean los mas cercanos a 0 en este
+  caso la media es de -0.0062 y una sd 0.34 
+  
+  el p-value arroja 0.066 es decir el 6.6% de la iteraciones arrejo un valor
+  causal de beta de -0.8472, o de otra manera en 934 de cada 1,000 intentos el 
+  coeficiente falso cercana a cero
+  
+  el graifco solo es una distribucion de coeficientes tiene forma normal  
+  
+  el test placebo se hizo con poisson
+  
+  "
+}
 
+#grafico
 #calcular la altura maxima de la densidad 
 altura_texto <- max(density(coefs_placebo)$y) * 0.5
 
@@ -433,37 +567,33 @@ panel_alto  <- dplyr::filter(panel_estratos, categoria == "Estrato Alto")
 panel_medio <- dplyr::filter(panel_estratos, categoria == "Estrato Medio")
 panel_bajo  <- dplyr::filter(panel_estratos, categoria == "Estrato Bajo")
 
-modelos_estrato <- list(
-  Alto  = fixest::feols(log_luces ~ interaccion_log + interaccion_area |
-                          municipio + fecha,
-                        data = panel_alto, cluster = ~municipio),
-  Medio = fixest::feols(log_luces ~ interaccion_log + interaccion_area |
-                          municipio + fecha,
-                        data = panel_medio, cluster = ~municipio),
-  Bajo  = fixest::feols(log_luces ~ interaccion_log + interaccion_area |
-                          municipio + fecha,
-                        data = panel_bajo, cluster = ~municipio)
+modelos_estrato_poi <- list(
+  Alto  = fixest::fepois(luces_nocturnas ~ interaccion_log + interaccion_area | 
+                           municipio + fecha, data = panel_alto, cluster = ~municipio),
+  Medio = fixest::fepois(luces_nocturnas ~ interaccion_log + interaccion_area | 
+                           municipio + fecha, data = panel_medio, cluster = ~municipio),
+  Bajo  = fixest::fepois(luces_nocturnas ~ interaccion_log + interaccion_area | 
+                           municipio + fecha, data = panel_bajo, cluster = ~municipio)
 )
 
 #modelo de estratos
-modelo_triple <- fixest::feols(
-  log_luces ~ interaccion_log + interaccion_area +
+modelo_triple_poisson <- fixest::fepois(
+  luces_nocturnas ~ interaccion_log + interaccion_area +
     i(categoria, interaccion_log, ref = "Estrato Alto") +
-    i(categoria, interaccion_area, ref = "Estrato Alto") |
+    i(categoria, interaccion_area, ref = "Estrato Alto") | 
     municipio + fecha,
   data = panel_estratos,
   cluster = ~municipio
 )
 
-fixest::etable(
-  modelos_estrato[["Alto"]],
-  modelos_estrato[["Medio"]],
-  modelos_estrato[["Bajo"]],
-  headers = c("Estrato Alto", "Estrato Medio", "Estrato Bajo")
-)
-
 message("como referencia el estrato alto")
-summary(modelo_triple)
+summary(modelo_triple_poisson)
+
+if(F){
+  "
+  
+  "
+}
 
 #analisis de robustez del placebo ----
 #no hacer caso esto esta sesgado tiene autocorrelacion serial por lo que
