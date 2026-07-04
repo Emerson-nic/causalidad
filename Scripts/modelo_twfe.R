@@ -9,6 +9,48 @@ if(F){
   elasticidad de sus luces nocturnas respecto al IMAE, es decir, reaccionan más
   intensamente a los ciclos macro
   
+  Recuerde se el el imae trabajado es tendencia ciclo
+  
+  interaccion_log = log_densidad_vial * log_imae,
+  densidad_vial es km cuadrado pero para carreteras
+  interaccion_area = log_area * log_imae
+  area es km cuadraro osea el area de la superficie en el municipio
+  
+  luces nocturnas estan estan medida en unidades fisicas depues verifico si:
+  nW, cm cuadrado o sr
+  
+  en densidad_vial significa por ejemlo un valor promedio de 0.31 en niveles
+  que hay 0.31 km cuadrados de superficie
+  
+  interpretacion del interaccion_causal (densidad_vial * imae):
+  representa la dosis de ciclo economico nacional promedio a la que esta 
+  expuesta el municipio a traves de su carretera, si el imae sube, los 
+  municipios con mas carretaras subem de forma exponencial. en otras palabras
+  es un indice de exposicion fisica
+  
+  interaccion_ area_nominal (area * imae):
+  mide una escala de superficie expuesta al ciclo economico, representa que
+  entra mas grande el municipio es un motor enomico potencialmente mas grande
+  
+  otras interacciones interpretatcion:
+  
+  interacion_vial_primario (densidad_vial * imae_primario):
+  representa la exposicion de las zonas productoras de materias primas al 
+  ciclo agricola nacional a traves del transporte
+  
+  interacion_vial_secundario (densidad_vial * imae_secundario):
+  representa capacidad física de transporte y procesamiento industrial ante un 
+  shock de demanda
+  
+  interacion_vial_terciario (densid_vial * imae_terciario):
+  representa flujo de transporte y de consumo de la economía urbana
+  
+  las 3 interacciones son indices 
+  
+  
+  otra cosa se habia estimado la poblacion pero hacer la interaccion con el 
+  imae hay una multicolinealidad severa potenten mejor usar solo 2 variables
+  
   "
 }
 
@@ -27,7 +69,8 @@ pacman::p_load(fixest,
                sf,
                viridis,
                readxl,
-               stringr
+               stringr,
+               patchwork
                )
 
 # importar datos si no existen en el entorno ----
@@ -40,13 +83,18 @@ if (!exists("panel_final")) {
   }
 }
 
+#modelo twfe ----
+
 panel_final <- panel_final %>%
   dplyr::mutate(
     log_area = log(area_km2),
     log_luces = log(luces_nocturnas), 
-    log_imae  = log(imae),
-    interaccion_log = densid_vial * log_imae,
-    interaccion_area = log_area * log_imae
+    log_imae = log(imae),
+    log_poblacion = log(poblacion_estimada),
+    log_densidad_vial = log(densid_vial), 
+    interaccion_log = log_densidad_vial * log_imae,
+    interaccion_area = log_area * log_imae,
+    interaccion_pob = log_poblacion * log_imae
   ) 
 
 #modelo que elimina 19 obs
@@ -58,7 +106,8 @@ modelo_twfe_log <- fixest::feols(
 
 summary(modelo_twfe_log)
 
-#modelo en niveles
+#modelo poisson log-log 
+#recuerdase que la variable y poisoon lo hace log igualmente
 modelo_twfe_poisson <- fixest::fepois(
   luces_nocturnas ~ interaccion_log + interaccion_area | municipio + fecha,
   data = panel_final,
@@ -66,6 +115,15 @@ modelo_twfe_poisson <- fixest::fepois(
 )
 
 summary(modelo_twfe_poisson)
+
+#poisson pero cambiado area por poblacion
+modelo_twfe_poisson_pob <- fixest::fepois(
+  luces_nocturnas ~ interaccion_log + interaccion_pob | municipio + fecha,
+  data = panel_final,
+  cluster = ~municipio
+)
+
+summary(modelo_twfe_poisson_pob)
 
 #modelo sin cluster
 modelo_twfe_base <- fixest::feols(
@@ -75,14 +133,89 @@ modelo_twfe_base <- fixest::feols(
 
 #tablas comparativas para demostrar robustez
 fixest::etable(
-  modelo_twfe_base, 
+  modelo_twfe_poisson, 
   vcov = list(
     "iid", #errores clasicos 
     "hetero", #errores Robustos simples (solo corrige heterocedasticidad tipo White)
-    ~municipio #errores clustered (corrige heterocedasticidad y autocorrelacion serial)
+    ~municipio #errores clustered (corrige heterocedasticidad y autocorrelacion serial) modelo principal
   ),
   headers = c("clasicos", "robustos (White)", "clustered (Arellano)")
 )
+
+if(F){
+  "
+  
+  interpretacion del tablas comparativas:
+  
+  
+  "
+}
+
+#grafico de efectos marginales
+panel_grafico <- panel_final %>% 
+  dplyr::filter(is.finite(log_densidad_vial))
+
+rango_log_densidad <- seq(min(panel_grafico$log_densidad_vial, na.rm = TRUE), 
+                          max(panel_grafico$log_densidad_vial, na.rm = TRUE), 
+                          length.out = 100)
+
+beta_interaccion <- stats::coef(modelo_twfe_poisson)["interaccion_log"]
+se_interaccion   <- modelo_twfe_poisson$se["interaccion_log"]
+
+df_marginal <- data.frame(
+  log_density = rango_log_densidad,
+  efecto_marginal = rango_log_densidad * beta_interaccion,
+  se_marginal = rango_log_densidad * se_interaccion
+) %>%
+  dplyr::mutate(
+    ci_inf = efecto_marginal - 1.96 * se_marginal,
+    ci_sup = efecto_marginal + 1.96 * se_marginal,
+    densid_vial_real = exp(log_density)
+  )
+
+grafico_marginal <- ggplot(df_marginal, aes(x = densid_vial_real, y = efecto_marginal)) +
+  geom_ribbon(aes(ymin = ci_inf, ymax = ci_sup), fill = "#3B82F6", alpha = 0.15) +
+  geom_line(color = "#1D4ED8", linewidth = 1.2) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "#DC2626", linewidth = 0.8) +
+  scale_x_log10() + 
+  labs(
+    title = "A. Efecto Marginal del Shock (Poisson PPML)",
+    subtitle = "Elasticidad neta de luces según la Densidad Vial",
+    x = "Densidad Vial Real (km/km², Escala Log)",
+    y = "Elasticidad estimada (Beta neto)"
+  ) +
+  theme_minimal(base_size = 10) +
+  theme(
+    plot.title = element_text(face = "bold", color = "#1E293B"),
+    plot.subtitle = element_text(size = 8, color = "#64748B"),
+    panel.grid.minor = element_blank()
+  )
+
+df_municipios_unicos <- panel_grafico %>% 
+  dplyr::distinct(municipio, .keep_all = TRUE)
+
+grafico_dispersion <- ggplot(df_municipios_unicos, aes(x = area_km2, y = densid_vial)) +
+  geom_point(alpha = 0.6, color = "#10B981", size = 2) +
+  geom_smooth(method = "lm", color = "#059669", fill = "#10B981", alpha = 0.1, linewidth = 0.8) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(
+    title = "B. Ortogonalidad Funcional",
+    subtitle = "Dispersión Municipal: Área vs. Densidad Vial",
+    x = "Área del Municipio (km², Escala Log)",
+    y = "Densidad Vial (km de carreteras / km², Escala Log)"
+  ) +
+  theme_minimal(base_size = 10) +
+  theme(
+    plot.title = element_text(face = "bold", color = "#1E293B"),
+    plot.subtitle = element_text(size = 8, color = "#64748B"),
+    panel.grid.minor = element_blank()
+  )
+
+panel_combinado <- grafico_marginal + grafico_dispersion
+
+print(panel_combinado)
+ggsave("Graficos/panel_efectos_y_controles_1x2.pdf", plot = panel_combinado, width = 11, height = 4.5, dpi = 300)
 
 #graficos de residuos vs valores ajustados
 residuos_df <- data.frame(
@@ -95,7 +228,7 @@ dist_residuo_grafico <- ggplot(residuos_df, aes(x = Ajustados, y = Residuos)) +
   geom_hline(yintercept = 0, color = "red", linetype = "dashed", size = 1) +
   labs(
     title = "Distribución de Residuos del Modelo TWFE",
-    subtitle = "Ausencia de patrones no lineales severos tras controlar por Efectos Fijos",
+    # subtitle = "Ausencia de patrones no lineales severos tras controlar por Efectos Fijos",
     x = "Valores Ajustados (Log Luces)",
     y = "Residuos del Modelo"
   ) 
@@ -248,8 +381,35 @@ print(p_placebo)
 
 #valor significativo del placebo
 
-#modelos segmentados (estratos) por terciles de liminosidad ----
+#calcular la altura maxima de la densidad 
+altura_texto <- max(density(coefs_placebo)$y) * 0.5
 
+placebo_df <- data.frame(coef_placebo = coefs_placebo)
+
+grafico_placebo <- ggplot(placebo_df, aes(x = coef_placebo)) +
+  geom_histogram(aes(y = after_stat(density)), fill = "#94A3B8", color = "white", alpha = 0.85, bins = 30) +
+  geom_density(color = "#475569", linewidth = 0.8, linetype = "dashed") +
+  geom_vline(xintercept = coef_real, color = "#DC2626", linetype = "solid", linewidth = 1.2) +
+  annotate("text", x = coef_real, y = altura_texto, 
+           label = paste0("Coeficiente Real: ", round(coef_real, 4)), 
+           color = "#DC2626", angle = 90, vjust = -0.5, fontface = "bold", size = 3.5) +
+  labs(
+    title = "Distribución del Coeficiente de Placebo vs. Efecto Real",
+    subtitle = paste0("Simulación de Monte Carlo con ", n_perm, " permutaciones espaciales de la Red Vial (p-valor = ", round(p_placebo, 4), ")"),
+    x = "Estimación del Coeficiente de Interacción Simulado",
+    y = "Densidad"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title = element_text(face = "bold", size = 13, color = "#1E293B"),
+    plot.subtitle = element_text(size = 9, color = "#64748B"),
+    panel.grid.minor = element_blank()
+  )
+
+print(grafico_placebo)
+ggsave("Graficos/placebo_permutacion_histograma.pdf", plot = grafico_placebo, width = 8, height = 4.5, dpi = 300)
+
+#modelos segmentados (estratos) por terciles de liminosidad ----
 
 #clasificar municipios en terciles 
 municipios_clasificados <- panel_final %>%
@@ -423,7 +583,7 @@ fixest::etable(
   headers = c("Original", "Sin Saturación (P95)", "Placebo Lead (t+1)")
 )
 
-#analisis sectoria ----
+#analisis sectorial ----
 
 panel_final <- panel_final %>%
   mutate(
@@ -474,4 +634,78 @@ etable(modelo_twfe_log, #modelo con imae total
        headers = c("Total", "Primario", "Secundario", "Terciario"))
 
 
+
+#grafico
+#extraer coeficientes
+df_dual <- data.frame(
+  Sector = c(
+    "Total (IMAE)", "Total (IMAE)",
+    "Sector Primario", "Sector Primario",
+    "Sector Secundario", "Sector Secundario",
+    "Sector Terciario", "Sector Terciario"
+  ),
+  Variable = c(
+    "Interacción Vial (Densidad)", "Control de Escala (Área)",
+    "Interacción Vial (Densidad)", "Control de Escala (Área)",
+    "Interacción Vial (Densidad)", "Control de Escala (Área)",
+    "Interacción Vial (Densidad)", "Control de Escala (Área)"
+  ),
+  Coeficiente = c(
+    stats::coef(modelo_twfe_log)["interaccion_log"],
+    stats::coef(modelo_twfe_log)["interaccion_area"],
+    stats::coef(modelo_primario)["interaccion_log_primario"],
+    stats::coef(modelo_primario)["interaccion_area_primario"],
+    stats::coef(modelo_secundario)["interaccion_log_secundario"],
+    stats::coef(modelo_secundario)["interaccion_area_secundario"],
+    stats::coef(modelo_terciario)["interaccion_log_terciario"],
+    stats::coef(modelo_terciario)["interaccion_area_terciario"]
+  ),
+  ErrorEstandar = c(
+    modelo_twfe_log$se["interaccion_log"],
+    modelo_twfe_log$se["interaccion_area"],
+    modelo_primario$se["interaccion_log_primario"],
+    modelo_primario$se["interaccion_area_primario"],
+    modelo_secundario$se["interaccion_log_secundario"],
+    modelo_secundario$se["interaccion_area_secundario"],
+    modelo_terciario$se["interaccion_log_terciario"],
+    modelo_terciario$se["interaccion_area_terciario"]
+  )
+)
+
+df_dual <- df_dual %>%
+  dplyr::mutate(
+    ci_inf = Coeficiente - 1.96 * ErrorEstandar,
+    ci_sup = Coeficiente + 1.96 * ErrorEstandar,
+    Sector = factor(Sector, levels = c("Sector Terciario", "Sector Secundario", "Sector Primario", "Total (IMAE)"))
+  )
+grafico_dual_sectores <- ggplot(df_dual, aes(x = Sector, y = Coeficiente, color = Variable)) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "#94A3B8", linewidth = 0.8) + 
+  geom_errorbar(aes(ymin = ci_inf, ymax = ci_sup), 
+                width = 0.2, linewidth = 0.9, 
+                position = position_dodge(width = 0.5)) +
+  geom_point(size = 3.5, position = position_dodge(width = 0.5)) + 
+  coord_flip() +
+  scale_color_manual(values = c(
+    "Control de Escala (Área)" = "#64748B",
+    "Interacción Vial (Densidad)" = "#2563EB"
+  )) +
+  labs(
+    title = "Análisis Sectorial: Efecto Moderador Vial vs. Control por Área",
+    subtitle = "Comparación de elasticidades de luces nocturnas ante shocks macroeconómicos (IC 95%)",
+    x = "Modelo / Indicador del IMAE",
+    y = "Coeficiente Estimado (Beta)",
+    color = "Variable del Modelo"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title = element_text(face = "bold", size = 13, color = "#1E293B"),
+    plot.subtitle = element_text(size = 9, color = "#64748B"),
+    axis.text.y = element_text(face = "bold", size = 11, color = "#334155"),
+    panel.grid.minor = element_blank(),
+    legend.position = "bottom",
+    legend.title = element_text(face = "bold", size = 9)
+  )
+
+print(grafico_dual_sectores)
+ggsave("Graficos/coeficientes_vial_vs_area.pdf", plot = grafico_dual_sectores, width = 8, height = 4.5, dpi = 300)
 
