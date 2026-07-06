@@ -27,5 +27,10 @@ grafico_1_estrato_alto.pdf
 grafico_2_estrato_medio.pdf
 grafico_3_estrato_bajo.pdf
 
+#qmd
+paper/paper_densidad_vial.tex
+paper/paper_densidad_vial.pdf
+
+
 #cvs
 csv/*.csv
