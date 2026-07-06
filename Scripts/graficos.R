@@ -61,7 +61,8 @@ municipios_clasificados <- panel_final %>%
   dplyr::group_by(municipio) %>%
   dplyr::summarise(
     luz_historica = mean(luces_nocturnas, na.rm = TRUE),
-    vial_historica = mean(densid_vial, na.rm = TRUE)
+    vial_historica = mean(densid_vial, na.rm = TRUE),
+    .groups = "drop"
   ) %>%
   dplyr::mutate(
     tercil = dplyr::ntile(luz_historica, 3),
@@ -89,17 +90,18 @@ df_promedios_mensuales <- panel_graficos %>%
   dplyr::summarise(luces_grupo = mean(luces_nocturnas, na.rm = TRUE), .groups = "drop")
 
 #grafico de imae
-df_imae <- panel_final %>%
+ddf_imae <- panel_final %>%
   dplyr::group_by(fecha) %>%
-  dplyr::summarise(`IMAE Nacional` = mean(imae, na.rm = TRUE))
+  dplyr::summarise(`IMAE Nacional` = mean(imae, na.rm = TRUE), .groups = "drop")
 
 plot_imae <- ggplot(df_imae, aes(x = fecha, y = `IMAE Nacional`)) +
-  geom_line(size = 1.2, color = "#B91C1C") + 
+  geom_line(linewidth = 1.2, color = "#B91C1C") + 
   labs(
     title = "Evolución del Ciclo Macroeconómico Nacional (IMAE)",
     subtitle = "Comportamiento del shock exógeno común, transversal a todos los municipios",
-    x = "Línea de Tiempo Mensual", y = "Índice Mensual de Actividad Económica (Tendencia-Ciclo)",
-    caption = "Fuente: Elaboración propia con datos del Banco Central de Nicaragua (BCN)."
+    x = "Línea de Tiempo Mensual", 
+    y = "Índice Mensual de Actividad Económica",
+    caption = "Fuente: Elaboración propia con datos del Banco Central de Nicaragua."
   ) +
   theme_bw(base_size = 11) + 
   theme(panel.grid.minor = element_blank())
@@ -111,13 +113,12 @@ df_alto_municipios <- panel_graficos %>% dplyr::filter(categoria == "Estrato Alt
 df_alto_promedios <- df_promedios_mensuales %>% dplyr::filter(categoria == "Estrato Alto")
 densidad_alto <- round(mean(df_alto_municipios$vial_historica, na.rm=TRUE), 3)
 
-nombres_alto <- limpiar_nombres(df_alto_municipios$municipio)
-caption_alto <- stringr::str_wrap(paste0("Municipios Integrantes: ", nombres_alto), width = 135)
+caption_alto <- stringr::str_wrap(paste0("Municipios Integrantes: ", limpiar_nombres(df_alto_municipios$municipio)), width = 135)
 
 plot_alto <- ggplot() +
   geom_line(data = df_alto_municipios, aes(x = fecha, y = luces_nocturnas, group = municipio), 
-            color = "#94A3B8", alpha = 0.35, size = 0.4) +
-  geom_line(data = df_alto_promedios, aes(x = fecha, y = luces_grupo), size = 1.2, color = "#0F172A") + 
+            color = "#94A3B8", alpha = 0.35, linewidth = 0.4) + 
+  geom_line(data = df_alto_promedios, aes(x = fecha, y = `luces_grupo`), linewidth = 1.2, color = "#0F172A") + 
   labs(
     title = "Estrato Alto (Mayor Desarrollo Económico)",
     subtitle = paste0("Evolución temporal de la luminosidad local. Densidad Vial Promedio: ", densidad_alto),
@@ -125,23 +126,24 @@ plot_alto <- ggplot() +
     caption = caption_alto
   ) +
   theme_bw(base_size = 11) + 
-  theme(panel.grid.minor = element_blank(), plot.caption = element_text(size = 7.5, hjust = 0, color = "#475569", margin = margin(t = 10)))
+  theme(
+    panel.grid.minor = element_blank(), 
+    plot.caption = element_text(size = 7.5, hjust = 0, color = "#475569", margin = margin(t = 10))
+  )
 
 ggsave("Graficos/grafico_1_estrato_alto.pdf", plot = plot_alto, width = 9, height = 6, dpi = 300)
-
 
 #estrato medio
 df_medio_municipios <- panel_graficos %>% dplyr::filter(categoria == "Estrato Medio")
 df_medio_promedios <- df_promedios_mensuales %>% dplyr::filter(categoria == "Estrato Medio")
 densidad_medio <- round(mean(df_medio_municipios$vial_historica, na.rm=TRUE), 3)
 
-nombres_medio <- limpiar_nombres(df_medio_municipios$municipio)
-caption_medio <- stringr::str_wrap(paste0("Municipios Integrantes: ", nombres_medio), width = 135)
+caption_medio <- stringr::str_wrap(paste0("Municipios Integrantes: ", limpiar_nombres(df_medio_municipios$municipio)), width = 135)
 
 plot_medio <- ggplot() +
   geom_line(data = df_medio_municipios, aes(x = fecha, y = luces_nocturnas, group = municipio), 
-            color = "#93C5FD", alpha = 0.4, size = 0.4) +
-  geom_line(data = df_medio_promedios, aes(x = fecha, y = luces_grupo), size = 1.2, color = "#2563EB") + 
+            color = "#93C5FD", alpha = 0.4, linewidth = 0.4) +
+  geom_line(data = df_medio_promedios, aes(x = fecha, y = `luces_grupo`), linewidth = 1.2, color = "#2563EB") + 
   labs(
     title = "Estrato Medio (Desarrollo Económico Intermedio)",
     subtitle = paste0("Evolución temporal de la luminosidad local. Densidad Vial Promedio: ", densidad_medio),
@@ -149,23 +151,24 @@ plot_medio <- ggplot() +
     caption = caption_medio
   ) +
   theme_bw(base_size = 11) + 
-  theme(panel.grid.minor = element_blank(), plot.caption = element_text(size = 7.5, hjust = 0, color = "#475569", margin = margin(t = 10)))
+  theme(
+    panel.grid.minor = element_blank(), 
+    plot.caption = element_text(size = 7.5, hjust = 0, color = "#475569", margin = margin(t = 10))
+  )
 
 ggsave("Graficos/grafico_2_estrato_medio.pdf", plot = plot_medio, width = 9, height = 6, dpi = 300)
-
 
 #estrato bajo
 df_bajo_municipios <- panel_graficos %>% dplyr::filter(categoria == "Estrato Bajo")
 df_bajo_promedios <- df_promedios_mensuales %>% dplyr::filter(categoria == "Estrato Bajo")
 densidad_bajo <- round(mean(df_bajo_municipios$vial_historica, na.rm=TRUE), 3)
 
-nombres_bajo <- limpiar_nombres(df_bajo_municipios$municipio)
-caption_bajo <- stringr::str_wrap(paste0("Municipios Integrantes: ", nombres_bajo), width = 135)
+caption_bajo <- stringr::str_wrap(paste0("Municipios Integrantes: ", limpiar_nombres(df_bajo_municipios$municipio)), width = 135)
 
 plot_bajo <- ggplot() +
   geom_line(data = df_bajo_municipios, aes(x = fecha, y = luces_nocturnas, group = municipio), 
-            color = "#CBD5E1", alpha = 0.4, size = 0.4) +
-  geom_line(data = df_bajo_promedios, aes(x = fecha, y = luces_grupo), size = 1.2, color = "#475569") + 
+            color = "#CBD5E1", alpha = 0.4, linewidth = 0.4) +
+  geom_line(data = df_bajo_promedios, aes(x = fecha, y = `luces_grupo`), linewidth = 1.2, color = "#475569") + 
   labs(
     title = "Estrato Bajo (Zonas Estructuralmente Aisladas)",
     subtitle = paste0("Evolución temporal de la luminosidad local. Densidad Vial Promedio: ", densidad_bajo),
@@ -173,10 +176,12 @@ plot_bajo <- ggplot() +
     caption = paste0(caption_bajo, "\nFuente: Elaboración propia con microdatos de OSM y NASA.")
   ) +
   theme_bw(base_size = 11) + 
-  theme(panel.grid.minor = element_blank(), plot.caption = element_text(size = 7.5, hjust = 0, color = "#475569", margin = margin(t = 10)))
+  theme(
+    panel.grid.minor = element_blank(), 
+    plot.caption = element_text(size = 7.5, hjust = 0, color = "#475569", margin = margin(t = 10))
+  )
 
 ggsave("Graficos/grafico_3_estrato_bajo.pdf", plot = plot_bajo, width = 9, height = 6, dpi = 300)
-
 
 # efectos <- ggeffects::ggemmeans(modelo_causal, terms = c("imae", "densid_vial"))
 # 
