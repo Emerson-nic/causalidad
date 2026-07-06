@@ -77,7 +77,8 @@ pacman::p_load(fixest,
                readxl,
                stringr,
                patchwork,
-               car
+               car,
+               purrr
                )
 
 # importar datos si no existen en el entorno ----
@@ -599,11 +600,10 @@ summary(modelo_triple_poisson)
 matriz_vcov <- vcov(modelo_triple_poisson)
 names(coef(modelo_triple_poisson))
 
-car::linearHypothesis(
-  modelo_triple_poisson, 
-  hypothesis.matrix = c(1, 0, 0, 1, 0, 0), 
-  vcov. = matriz_vcov
-)
+test_bajo_vial <- wald(modelo_triple_poisson, "categoria::Estrato Bajo:interaccion_log")
+print(test_bajo_vial)
+test_medio_vial <- wald(modelo_triple_poisson, "categoria::Estrato Medio:interaccion_log")
+print(test_medio_vial)
 
 #este test mira la covarianza (test de wald)
 #h0: los betas son distintos de 0
@@ -614,6 +614,112 @@ fixest::etable(
   modelos_estrato_poi[["Medio"]],
   modelos_estrato_poi[["Bajo"]],
   headers = c("Estrato Alto", "Estrato Medio", "Estrato Bajo")
+)
+
+#crear mapa de estratos 
+#extraer coeficientes
+coefs_estratos <- map_dfr(modelos_estrato_poi, function(mod) {
+  ct <- coeftable(mod, keep = c("interaccion_log", "interaccion_area"))
+  data.frame(
+    term = rownames(ct),
+    estimate = ct[, "Estimate"],
+    std.error = ct[, "Std. Error"],
+    p.value  = ct[, "Pr(>|z|)"]
+  )
+}, .id = "estrato")
+
+df_forest <- coefs_estratos %>%
+  mutate(
+    categoria = case_when(
+      estrato == "Alto"  ~ "Estrato Alto",
+      estrato == "Medio" ~ "Estrato Medio",
+      estrato == "Bajo"  ~ "Estrato Bajo"
+    ),
+    categoria = factor(categoria, levels = c("Estrato Bajo", "Estrato Medio", "Estrato Alto")),
+    variable = case_when(
+      term == "interaccion_log"  ~ "Canal Vial",
+      term == "interaccion_area" ~ "Canal Área"
+    ),
+    ci_lower = estimate - 1.96 * std.error,
+    ci_upper = estimate + 1.96 * std.error,
+    significancia = case_when(
+      p.value < 0.01 ~ "Significativo al 1%",
+      p.value < 0.05 ~ "Significativo al 5%",
+      TRUE           ~ "No Significativo"
+    )
+  )
+
+#mapa
+ruta_mapa <- here::here("dataset", "geoBoundaries-NIC-ADM2.geojson")
+nic_map_raw <- sf::st_read(ruta_mapa, quiet = TRUE) %>% 
+  dplyr::rename(municipio = shapeName)
+
+mapa_estratos_df <- nic_map_raw %>%
+  left_join(municipios_clasificados, by = "municipio")
+
+colores_estratos <- c("Estrato Alto"  = "#2C3E50",
+                      "Estrato Medio" = "#F39C12",
+                      "Estrato Bajo"  = "#E74C3C")
+
+#mapa
+p1_mapa <- ggplot(mapa_estratos_df) +
+  geom_sf(aes(fill = categoria), color = "white", size = 0.08) +
+  scale_fill_manual(values = colores_estratos, name = "Estrato Histórico") +
+  labs(
+    title = "A. Distribución Espacial de Terciles",
+    subtitle = "Clasificación por promedio histórico de luces"
+  ) +
+  theme_void(base_size = 9) +
+  theme(
+    plot.title = element_text(face = "bold", color = "#1C2833", hjust = 0.5),      
+    plot.subtitle = element_text(size = 8, color = "#5D6D7E", hjust = 0.5),       
+    legend.position = "bottom"
+  )
+
+p2_forest <- ggplot(df_forest, aes(x = estimate, y = categoria)) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "#AEB6BF", size = 0.5) +
+  geom_errorbarh(aes(xmin = ci_lower, xmax = ci_upper), height = 0.15, color = "#34495E", size = 0.7) +
+  geom_point(aes(color = categoria), size = 3.5) +
+  geom_text(aes(label = sprintf("%.4f", estimate)), vjust = -1, size = 2.5, fontface = "bold", color = "#2C3E50") +
+  scale_color_manual(values = colores_estratos) +
+  facet_wrap(~variable, scales = "free_x", ncol = 1) +
+  labs(
+    title = "B. Estimaciones y Precisión (IC 95%)",
+    subtitle = expression("Coeficientes estructurales (" * beta * ") por Modelo de Estrato"),
+    x = "Elasticidad de Transmisión",
+    y = NULL
+  ) +
+  theme_minimal(base_size = 9) +
+  theme(
+    plot.title = element_text(face = "bold", color = "#1C2833", hjust = 0.5),      
+    plot.subtitle = element_text(size = 8, color = "#5D6D7E", hjust = 0.5),       
+    panel.grid.minor = element_blank(),
+    panel.grid.major.y = element_line(color = "#F2F4F4"),
+    strip.background = element_rect(fill = "#F8F9F9", color = NA),
+    strip.text = element_text(face = "bold", color = "#2C3E50"),
+    axis.text.y = element_text(face = "bold"),
+    legend.position = "none"
+  )
+
+mapa_panel_final <- p1_mapa + p2_forest + 
+  plot_layout(ncol = 2, widths = c(1.2, 1)) +
+  plot_annotation(
+    title = "Análisis de Resiliencia Macroeconómica por Estratos de Luminosidad",
+    subtitle = "Izquierda: Delimitación de clústeres económicos locales. Derecha: Coeficientes de interacción Poisson TWFE con intervalos de confianza empíricos.",
+    caption = "Fuente: Estimaciones propias basadas en VIIRS-NASA, OpenStreetMap y Banco Central de Nicaragua. Errores estándar clusterizados por municipio.",
+    theme = theme(
+      plot.title = element_text(hjust = 0.5, face = "bold", size = 11, color = "#17202A"),
+      plot.subtitle = element_text(hjust = 0.5, size = 8, color = "#566573"),
+      plot.background = element_rect(fill = "white", color = NA) 
+    )
+  )
+
+ggsave(
+  filename = here::here("Graficos", "mapa_y_coeficientes_estratos_consolidado.pdf"),
+  plot = mapa_panel_final, 
+  width = 11, 
+  height = 6, 
+  dpi = 300
 )
 
 if(F){
@@ -682,14 +788,16 @@ fixest::etable(
 #nota: esto se hizo en python, la razon r es lento es mejor hacerlo en python
 #para obtener los coeficientes y aqui procesarlo
 
-resultados_poisson <- read.csv("csv/blups_poisson_municipales.csv")
+#modelo bayesiano jerárquico (Poisson GLMM)
+resultados_poisson <- read.csv("csv/bayes_mejorado_total.csv")
 
-#filtro de significancia
+#filtro de significancia bayesiana, el intervalo de credibilidad al 95% no incluye el cero
 mapa_data_vial <- resultados_poisson %>%
   dplyr::mutate(
-    coef_vial_filtrado = dplyr::if_else(p_vial < 0.05, coef_vial, NA_real_),
-    coef_area_filtrado = dplyr::if_else(p_area < 0.05, coef_area, NA_real_)
+    coef_vial_filtrado = dplyr::if_else(ci_vial_lower > 0 | ci_vial_upper < 0, coef_vial, NA_real_),
+    coef_area_filtrado = dplyr::if_else(ci_area_lower > 0 | ci_area_upper < 0, coef_area, NA_real_)
   )
+
 #mapa
 ruta_mapa <- here::here("dataset", "geoBoundaries-NIC-ADM2.geojson")
 nic_map_raw <- sf::st_read(ruta_mapa, quiet = TRUE) %>% 
@@ -746,7 +854,7 @@ mapa_panel_1x2 <- p1 + p2 +
   plot_layout(ncol = 2) +
   plot_annotation(
     title = "Heterogeneidad Espacial Continua de la Resiliencia Macroeconómica",
-    subtitle = "Efectos marginales específicos Poisson (GLMM). Municipios en Gris Claro denotan coeficientes estadísticamente no significativos (p > 0.05).",
+    subtitle = "Efectos marginales específicos (modelo bayesiano jerárquico Poisson). Municipios en gris claro: intervalo de credibilidad del 95% incluye el cero.",
     caption = "Fuente: VIIRS-NASA, OpenStreetMap, Banco Central de Nicaragua. Procesamiento dual Python-R.",
     theme = theme(
       plot.title = element_text(hjust = 0.5, face = "bold", size = 11, color = "#17202A"),
@@ -756,12 +864,14 @@ mapa_panel_1x2 <- p1 + p2 +
   )
 
 ggsave(
-  here::here("Graficos", "mapa_panel_heterogeneidad_poisson_1x2.pdf"),
+  here::here("Graficos", "mapa_panel_heterogeneidad_bayesiana_1x2.pdf"),
   plot = mapa_panel_1x2, 
   width = 11, 
   height = 6, 
   dpi = 300
 )
+
+
 
 #resumen
 message("municipios con densidad Vial significativo (p < 0.05): ", sum(mapa_data_vial$p_vial < 0.05, na.rm=T), " de 153\n")
@@ -776,19 +886,25 @@ betas_municipales <- read.csv("csv/betas_municipales.csv")
 if(F){
   "
   
-  aqui se hizo un BLUPs (Best Linear Unbiased Predictors) que aplican 
-  shrinkage (contraccion), es la mejor forma de estimar betas que hacer
-  todas las regresiones 1 por municipio
+  aqui se hizo modelo bayesiano jerárquico (Poisson GLMM)
   
-  esto es util para politicas publicas lo mejor es ver la tabla pero de
-  manera general va de [-0.51, 2.1], es interesante porque solo hay 2 betas
-  negativas (efecto amortiguador) ambos son de la misma variable densidad vial
-  en lo municipios de Corinto (Municipio) y San Jorge (Municipio) con un beta de
-  -0.51 y -0.4 respectivamente ambos significativos al 1% 
+  esto es util para politicas publicas de manera preliminar recuerdese
+  no es causal
   
-  en el grafico del mapa se ve una tendencia de agrupamiento tipo cluster al 
-  oeste, es una macro-region en el pacifico de manera indirecta estos 
-  sectores a lo mejor son los que man aportan al imae y estan ultra conectados
+  los unicos no significativo son Corinto (Municipio), 
+  San Juan de Cinco Pinos (Municipio),
+  Municipio San Dionisio
+  Municipio San Rafael del Norte
+  para la variable densidad_vial 
+  las coeficiente de densidad_vial son significativos y positivos
+  nota: existe algunos na el 
+  coeficiente_vial_flitrado es normal porque son no significativos
+  
+  en la variable area todos son significativos y negativos :0
+  
+  recuerdese: se hizo estandarizacion para que diera mejor la convergencia 
+  sirvio y despues se hizo lo que es un reesccalado 
+  
   
   "
 }
