@@ -8,6 +8,7 @@ keywords: [luces nocturnas, infraestructura vial, shocks macroeconómicos, heter
 jel: [C23, O18, R11, R12]
 format:
   pdf:
+    pdf-engine: lualatex
     cite-method: biblatex
     bibliography: referencias.bib
     biblio-style: apa
