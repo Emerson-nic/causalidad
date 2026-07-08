@@ -6,6 +6,7 @@
 actividad_economica_via.Rproj
 .RData
 .Rhistory
+*.RData
 
 #html
 README.html

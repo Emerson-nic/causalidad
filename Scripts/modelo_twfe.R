@@ -16,8 +16,8 @@ if(F){
   interaccion_area = log_area * log_imae
   area es km cuadraro osea el area de la superficie en el municipio
   
-  luces nocturnas estan estan medida en unidades fisicas depues verifico si:
-  nW, cm cuadrado o sr
+  las unidades de medida son combinas y una sola es :
+  nw(nanovatios), cm cuadraro y sr(estereorradian)
   
   en densidad_vial significa por ejemlo un valor promedio de 0.31 en niveles
   que hay 0.31 km carretera transitable
