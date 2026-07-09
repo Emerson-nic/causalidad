@@ -475,8 +475,8 @@ imae_luces_stl <- ggplot(panel_stl, aes(x = fecha)) +
     sec.axis = sec_axis(~ . / coef_escala, name = "Índice IMAE")
   ) +
   labs(
-    title = "Evolución Macroeconómica: IMAE vs Luces Nocturnas",
-    subtitle = "Serie de luces filtrada mediante Descomposición Estacional Loess (STL)",
+    #title = "Evolución Macroeconómica: IMAE vs Luces Nocturnas",
+    #subtitle = "Serie de luces filtrada mediante Descomposición Estacional Loess (STL)",
     x = "Año",
     color = ""
   ) +
@@ -725,15 +725,21 @@ p1_mapa <- ggplot(mapa_estratos_df) +
   geom_sf(aes(fill = categoria), color = "white", size = 0.08) +
   scale_fill_manual(values = colores_estratos, name = "Estrato Histórico") +
   labs(
-    title = "A. Distribución Espacial de Terciles",
-    subtitle = "Clasificación por promedio histórico de luces"
+    # title = "Distribución Espacial de Terciles",
+    # subtitle = "Clasificación por promedio histórico de luces"
   ) +
   theme_void(base_size = 9) +
   theme(
-    plot.title = element_text(face = "bold", color = "#1C2833", hjust = 0.5),      
-    plot.subtitle = element_text(size = 8, color = "#5D6D7E", hjust = 0.5),       
     legend.position = "bottom"
   )
+
+ggplot2::ggsave(
+  filename = here::here("Graficos", "mapa_estratos_terciles.pdf"),
+  plot = p1_mapa, 
+  width = 7, 
+  height = 6, 
+  dpi = 300
+)
 
 p2_forest <- ggplot(df_forest, aes(x = estimate, y = categoria)) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "#AEB6BF", size = 0.5) +
@@ -763,9 +769,9 @@ p2_forest <- ggplot(df_forest, aes(x = estimate, y = categoria)) +
 mapa_panel_final <- p1_mapa + p2_forest + 
   plot_layout(ncol = 2, widths = c(1.2, 1)) +
   plot_annotation(
-    title = "Análisis de Resiliencia Macroeconómica por Estratos de Luminosidad",
-    subtitle = "Izquierda: Delimitación de clústeres económicos locales. Derecha: Coeficientes de interacción Poisson TWFE con intervalos de confianza empíricos.",
-    caption = "Fuente: Estimaciones propias basadas en VIIRS-NASA, OpenStreetMap y Banco Central de Nicaragua. Errores estándar clusterizados por municipio.",
+    #title = "Análisis de Resiliencia Macroeconómica por Estratos de Luminosidad",
+    #subtitle = "Izquierda: Delimitación de clústeres económicos locales. Derecha: Coeficientes de interacción Poisson TWFE con intervalos de confianza empíricos.",
+    #caption = "Fuente: Estimaciones propias basadas en VIIRS-NASA, OpenStreetMap y Banco Central de Nicaragua. Errores estándar clusterizados por municipio.",
     theme = theme(
       plot.title = element_text(hjust = 0.5, face = "bold", size = 11, color = "#17202A"),
       plot.subtitle = element_text(hjust = 0.5, size = 8, color = "#566573"),
