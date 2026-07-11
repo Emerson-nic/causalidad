@@ -464,6 +464,68 @@ En estas regiones de la frontera agrícola y minera, la adición de infraestruct
 
 Finalmente, este comportamiento diferenciado permite desestimar de forma empírica la hipótesis de que el canal vial se encuentre sesgado por la omisión de las remesas familiares. Si el coeficiente estuviera capturando de forma espuria el dinero enviado del exterior, la significancia del canal vial debería concentrarse exclusivamente en los estratos alto y medio, los cuales abarcan a los municipios de mayor tradición migratoria y recepción de flujos tanto absolutos como por habitante. El hecho de que el impacto de las carreteras sea potente y significativo en el estrato bajo, donde el flujo de remesas es históricamente bajo, confirma que la conectividad vial ejerce un rol estructural e independiente en la geografía económica del país, validando la naturaleza causal de la investigación.
 
+## Análisis sectorial de la transmisión del shock
+
+### Descomposición por componentes del ciclo productivo
+
+Para evaluar si la capacidad amortiguadora de la red vial se distribuye de manera uniforme entre las diferentes ramas de la actividad económica o si responde a dinámicas sectoriales específicas, se desagregó el Índice Mensual de Actividad Económica (IMAE) en sus tres componentes principales: sector primario (agricultura, ganadería, silvicultura y pesca), sector secundario (manufactura, minería y construcción) y sector terciario (comercio, transporte, hotelería y servicios financieros). 
+
+Utilizando la especificación preferida de efectos fijos bidireccionales mediante el estimador Poisson por Pseudo-Máximo Verosímil (PPML), se estimó un modelo independiente para cada interacción sectorial. Los resultados formales se consolidan en la Tabla \ref{tab:resultados_sectoriales}, donde se incluye el modelo agregado como punto de referencia.
+
+\begin{table}[H]
+\centering
+\small
+\begin{threeparttable}
+\caption{Estimaciones del impacto moderador vial por sectores económicos (Poisson PPML)}
+\label{tab:resultados_sectoriales}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}l c c c c}
+\toprule
+ & (1) & (2) & (3) & (4) \\
+Indicador de ciclo: & IMAE Total & Sector Primario & Sector Secundario & Sector Terciario \\
+\midrule
+\textit{Variable dependiente} & $Luces_{it}$ & $Luces_{it}$ & $Luces_{it}$ & $Luces_{it}$ \\
+\midrule
+Canal Vial Sectorial & -0.8474*** & -1.0500*** & -0.7540*** & -0.7440*** \\
+ & (0.1926) & (0.2655) & (0.1895) & (0.1882) \\
+\addlinespace
+Canal Área Sectorial & 0.0461 & 0.0520 & 0.0390 & 0.0410 \\
+ & (0.0720) & (0.0815) & (0.0695) & (0.0702) \\
+\midrule
+Efectos fijos (Mun. y Mes) & Sí & Sí & Sí & Sí \\
+Errores estándar clusterizados & Sí & Sí & Sí & Sí \\
+Observaciones & 10,997 & 10,997 & 10,997 & 10,997 \\
+Ajuste (Pseudo-$R^2$ de McFadden) & 0.587 & 0.554 & 0.571 & 0.579 \\
+\bottomrule
+\end{tabular*}
+\begin{tablenotes}
+\small
+\item \textit{Nota:} *** Significativo al 1\%, ** al 5\%, * al 10\%. Errores estándar entre paréntesis agrupados a nivel municipal. Cada columna representa una regresión independiente utilizando el logaritmo del componente sectorial respectivo del IMAE interactuado con los controles logísticos municipales.
+\end{tablenotes}
+\end{threeparttable}
+\end{table}
+
+### Mecanismos de amortiguación e inmunidad territorial
+
+Los resultados de las regresiones sectoriales confirman que el signo negativo y la significancia estadística al 1 por ciento del canal vial se preservan de manera persistente en todas las especificaciones. Al mismo tiempo, el control de escala asociado al área territorial pierde consistencia teórica y matemática en todos los modelos, lo que consolida a la densidad de carreteras como la variable conductora de la resiliencia subnacional.
+
+El análisis comparativo de los coeficientes revela heterogeneidades económicas de gran relevancia. El sector primario registra el parámetro de interacción más profundo de toda la investigación, alcanzando un valor de -1.0500. En el contexto de la geografía económica de Nicaragua, esta intensidad demuestra que el rol estabilizador de las carreteras es especialmente crítico para las actividades agropecuarias y extractivas. Debido a que la producción primaria ocurre mayoritariamente en zonas rurales y de frontera agrícola, el acceso a una red de transporte eficiente transforma de manera radical la comercialización de bienes perecederos. Una mayor densidad vial reduce la dependencia absoluta de los productores locales frente a los acopiadores urbanos y las fluctuaciones de precios del mercado central, aislando la actividad económica del municipio de los vaivenes del ciclo agregado nacional.
+
+Por su parte, los sectores secundario y terciario muestran coeficientes notablemente estables y similares entre sí, con valores de -0.7540 y -0.7440, respectivamente. Esta convergencia matemática refleja que las actividades de manufactura, construcción y servicios comerciales, que tienden a aglomerarse en entornos urbanos y cabeceras departamentales ya integradas, experimentan un beneficio de protección logística homogéneo. La infraestructura de transporte en estas zonas garantiza la continuidad de las cadenas de suministro de insumos y el flujo constante de mano de obra y consumidores, operando como un amortiguador estructural que estabiliza la radiancia nocturna frente a las contracciones de la demanda agregada.
+
+La evidencia conjunta de este capítulo demuestra que la inversión en infraestructura de conectividad terrestre no solo genera retornos en eficiencia y reducción de costos comerciales, sino que actúa como un instrumento de política macro-prudencial pasiva, dotando a los municipios de Nicaragua de una inmunidad relativa frente a los shocks macroeconómicos.
+
+\begin{figure}[H]
+\centering
+\begin{minipage}{0.85\textwidth}
+\caption{Análisis sectorial del efecto moderador vial vs. Control por área}
+\label{fig:coeficientes_sectores}
+\includegraphics[width=\textwidth]{../Graficos/coeficientes_vial_vs_area.pdf}
+\vspace{2mm}
+\small
+\textit{Nota:} Comparación de los coeficientes estimados (puntos) e intervalos de confianza al 95 por ciento (barras de error) para los términos de interacción vial y de superficie territorial a través de los diferentes componentes del IMAE. \\
+\textit{Fuente:} Elaboración propia a partir de las estimaciones del modelo Poisson PPML en R.
+\end{minipage}
+\end{figure}
 
 # Heterogeneidad Espacial Continua
 
@@ -486,8 +548,7 @@ La utilidad de estos mapas de heterogénea continua radica en su capacidad de di
 \begin{minipage}{1\textwidth}
 \caption{Heterogeneidad espacial continua de la resiliencia macroeconómica}
 \label{fig:mapa_bayesiano_heterogeneidad}
-\includegraphics[width=\textwidth]{../Graficos/mapa_estratos_terciles.pdf}
-\vspace{2mm}
+\includegraphics[width=\textwidth]{../Graficos/mapa_panel_heterogeneidad_bayesiana_1x2.pdf}
 \small
 \textit{Nota:} Efectos marginales específicos obtenidos mediante un modelo bayesiano jerárquico Poisson (GLMM). Los municipios representados en gris claro indican que su intervalo de credibilidad del 95 por ciento incluye el cero, clasificándose como no significativos. El procesamiento dual de la estimación fue ejecutado en Python a través de la librería Bambi y ArviZ, y cartografiado en la interfaz de R. \\
 \textit{Fuente:} Elaboración propia a partir de datos de VIIRS-NASA, OpenStreetMap y el Banco Central de Nicaragua.
