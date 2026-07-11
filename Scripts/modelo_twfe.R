@@ -244,7 +244,7 @@ dist_residuo_grafico <- ggplot(residuos_df, aes(x = Ajustados, y = Residuos)) +
   geom_point(alpha = 0.2, color = "#2563EB") +
   geom_hline(yintercept = 0, color = "red", linetype = "dashed", size = 1) +
   labs(
-    title = "Distribución de Residuos del Modelo TWFE Poisson",
+    #title = "Distribución de Residuos del Modelo TWFE Poisson",
     # subtitle = "Ausencia de patrones no lineales severos tras controlar por Efectos Fijos",
     x = "Valores Ajustados (Luces)",
     y = "Residuos del Modelo"
@@ -327,14 +327,24 @@ modelo_clean <- fixest::feols(
 )
 summary(modelo_clean)
 
+#modelo outliers para poisson
+
+modelo_clean_poisson <- fixest::fepois(
+  luces_nocturnas ~ interaccion_log + interaccion_area | municipio + fecha,
+  data = panel_clean,
+  cluster = ~municipio
+)
+summary(modelo_clean_poisson)
+
 #tabla de comparacion
 
 fixest::etable(
   modelo_twfe_base, #log-lineal 
   modelo_twfe_log, #log-lineal (con cluster)
   modelo_twfe_poisson, #poisson (PPML)
+  modelo_clean_poisson,# poisson sin outliers
   modelo_clean, #log-lineal (sin outliers)
-  headers = c("OLS", "TWFE Principal", "Poisson (PPML)", "TWFE (Sin Outliers)")
+  headers = c("OLS", "TWFE Principal", "Poisson (PPML)", "Poisson (PPML - Sin Outliers)", "TWFE (Sin Outliers)")
 )
 
 if(F){
@@ -513,7 +523,7 @@ panel_placebo <- panel_final %>%
 
 #mapa de municipio
 mapa_densidad <- panel_placebo %>%
-  dplyr::distinct(municipio, densid_vial)
+  dplyr::distinct(municipio, log_densidad_vial)
 
 #comparar coeficientes
 coef_real <- stats::coef(modelo_twfe_poisson)["interaccion_log"]
@@ -522,25 +532,24 @@ coefs_placebo_poisson <- numeric(n_perm)
 message("permutando densid_vial entre municipios (", n_perm, " iteraciones)")
 
 for (i in seq_len(n_perm)) {
-
-  #reasignar densid_vial al azar entre municipios
+  
   mapa_shuffled <- mapa_densidad %>%
-    dplyr::mutate(densid_vial_falsa = sample(densid_vial, replace = FALSE))
-
+    dplyr::mutate(log_densidad_vial_falsa = sample(log_densidad_vial, replace = FALSE))
+  
   panel_p <- panel_placebo %>%
-    dplyr::select(-densid_vial) %>%
+    dplyr::select(-log_densidad_vial) %>%
     dplyr::left_join(mapa_shuffled, by = "municipio") %>%
     dplyr::mutate(
-      interaccion_log_p = log(densid_vial_falsa) * log_imae 
+      interaccion_log_p = log_densidad_vial_falsa * log_imae   
     )
-
+  
   mod_p <- fixest::fepois(
     luces_nocturnas ~ interaccion_log_p + interaccion_area | municipio + fecha,
     data = panel_p,
     cluster = ~municipio,
     warn = FALSE, notes = FALSE
   )
-
+  
   coefs_placebo_poisson[i] <- stats::coef(mod_p)["interaccion_log_p"]
   
   if (i %% 100 == 0) message("   Progreso: ", i, "/", n_perm)
@@ -821,6 +830,7 @@ if(F){
 #no es concluyente
 
 #placebo imae adenlantado (lead t+1) 
+#agregar log aqui las densidad esta en niveles ;(
 
 panel_lead <- panel_model %>%
   dplyr::arrange(municipio, fecha) %>%
@@ -1018,15 +1028,15 @@ if(F){
 panel_final <- panel_final %>%
   mutate(
     log_imae_primario = log(imae_primario),
-    interaccion_log_primario = densid_vial * log_imae_primario,
+    interaccion_log_primario = log_densidad_vial * log_imae_primario,
     interaccion_area_primario = log_area * log_imae_primario,
     
     log_imae_secundario = log(imae_secundario),
-    interaccion_log_secundario = densid_vial * log_imae_secundario,
+    interaccion_log_secundario = log_densidad_vial * log_imae_secundario,
     interaccion_area_secundario = log_area * log_imae_secundario,
     
     log_imae_terciario = log(imae_terciario),
-    interaccion_log_terciario = densid_vial * log_imae_terciario,
+    interaccion_log_terciario = log_densidad_vial * log_imae_terciario,
     interaccion_area_terciario = log_area * log_imae_terciario
   )
 
@@ -1073,8 +1083,8 @@ if(F){
   
   se realizo regressiones poisson donde la densidad_vial es significativa y 
   todas negativas, el area no es significativo, en el sector primario el beta
-  es de -1.14 el mas bajo de todos, en el secundario y terciario el valor 
-  es  muy similar -0.793 y -0.797 respectivamente
+  es de -1.05 el mas bajo de todos, en el secundario y terciario el valor 
+  es  muy similar -0.754 y -0.744 respectivamente
   
   "
 }
