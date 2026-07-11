@@ -387,7 +387,32 @@ La Figura \ref{fig:panel_efectos_controles} complementa el análisis al ilustrar
 
 Por otro lado, la inclusión de la interacción espacial por escala geográfica (Canal Área) resulta un control empírico fundamental. Como lo evidencia el panel B de la gráfica superior, aunque los municipios geográficamente más grandes tienden a poseer una menor densidad vial (una dispersión descendente natural), la relación no es determinística. Esto garantiza la independencia y ortogonalidad estadística en las estimaciones. De manera concluyente, en las estimaciones Poisson PPML (Tabla \ref{tab:resultados_principales}, columnas 3 y 4), el coeficiente asociado al área territorial pierde por completo su significancia estadística. Este resultado es revelador, ya que descarta que el mero tamaño geográfico de un municipio funcione como un escudo económico, confirmando que el verdadero mecanismo de resiliencia subnacional es única y exclusivamente la conectividad vial construida.
 
-### Heterogeneidad estructural por estratos históricos
+## Prueba de validación por permutación espacial (Placebo)
+\label{sec:placebo_permutacion}
+
+Un riesgo latente en las estimaciones con datos de panel espacialmente granulares es que los coeficientes significativos surjan de forma espuria debido a la inercia temporal de las variables agregadas o a patrones aleatorios de correlación espacial (ruido geográfico). Para descartar que el efecto amortiguador de la infraestructura vial sea un artefacto de una coincidencia matemática, se ejecutó un ejercicio de validación no paramétrica mediante una prueba de placebo por permutación.
+
+La mecánica de la prueba consistió en extraer el vector estático de la densidad vial municipal y redistribuirlo al azar entre los municipios del país mediante un muestreo sin reemplazo, repitiendo este proceso a lo largo de 1,000 iteraciones independientes. Este procedimiento rompe de forma deliberada el vínculo geográfico real entre la infraestructura de cada territorio y su evolución lumínica, pero preserva intactas la trayectoria temporal del IMAE nacional, la estructura longitudinal del panel y las dimensiones de los efectos fijos bidireccionales. En cada simulación se recalculó el término de interacción falso y se volvió a estimar el modelo principal utilizando el estimador Poisson PPML con errores agrupados.
+
+Los resultados numéricos de las mil simulaciones respaldan de manera concluyente la validez del modelo base. La distribución empírica de los coeficientes placebo converge hacia una forma aproximadamente normal centrada de manera casi simétrica en el cero poblacional, registrando un valor promedio de -0.0147 y una desviación estándar empírica de 0.1939. Este comportamiento confirma que, una vez disociada la verdadera ubicación de las carreteras, la interacción falsa pierde por completo su capacidad explicativa sistemática sobre la radianza nocturna.
+
+Al contrastar esta distribución con los hallazgos iniciales, se observa que el coeficiente real de la investigación (-0.8472) se ubica en el extremo absoluto de la cola inferior izquierda. El cálculo del valor p por permutación, computado como la proporción de réplicas donde el parámetro falso en valor absoluto iguala o supera la magnitud del estimador verdadero, alcanza un valor crítico de 0.001. Esto implica que en 999 de cada 1,000 intentos, la asignación aleatoria de infraestructura es incapaz de replicar o aproximarse a la intensidad del impacto estimado en el modelo principal. Este ejercicio estadístico permite rechazar formalmente la hipótesis de una correlación espuria, proveyendo evidencia de que el canal vial ejerce un impacto estructural y genuino en la resiliencia económica local frente a las fluctuaciones agregadas.
+
+\begin{figure}[H]
+\centering
+\begin{minipage}{0.85\textwidth}
+\caption{Distribución del Coeficiente de Placebo vs. Efecto Real}
+\label{fig:placebo_histograma}
+\includegraphics[width=\textwidth]{../Graficos/placebo_permutacion_histograma.pdf}
+\small
+\textit{Nota:} Simulación de Monte Carlo con 1000 permutaciones espaciales de la Red Vial ($p$-valor = 0.001). 
+\textit{Fuente:} Elaboración propia.
+\end{minipage}
+\end{figure}
+
+
+
+## Heterogeneidad estructural por estratos históricos
 
 Para verificar si el mecanismo de transmisión logística varía según el nivel de desarrollo histórico de las localidades, se segmentó la muestra en tres estratos independientes (alto, medio y bajo) utilizando terciles basados en el promedio histórico de la radianza nocturna de cada municipio. Las estimaciones por Pseudo-Máximo Verosímil (PPML) con errores estándar agrupados a nivel municipal se presentan en la Tabla \ref{tab:resultados_estratos}.
 
@@ -438,6 +463,36 @@ La inversión del signo econométrico en las zonas de menor desarrollo históric
 En estas regiones de la frontera agrícola y minera, la adición de infraestructura de transporte rompe el aislamiento geográfico inicial, enlazando por primera vez a los productores locales con los centros de distribución nacional. En consecuencia, cuando la actividad agregada del país se expande, estos municipios conectados experimentan un crecimiento intensivo al colocar sus excedentes productivos en el mercado nacional. Sin embargo, esta conectividad también los vuelve vulnerables de forma simétrica: ante una contracción económica nacional, la demanda interna de estas localidades periféricas se deprime con mayor fuerza debido a su nueva dependencia comercial del resto del país.
 
 Finalmente, este comportamiento diferenciado permite desestimar de forma empírica la hipótesis de que el canal vial se encuentre sesgado por la omisión de las remesas familiares. Si el coeficiente estuviera capturando de forma espuria el dinero enviado del exterior, la significancia del canal vial debería concentrarse exclusivamente en los estratos alto y medio, los cuales abarcan a los municipios de mayor tradición migratoria y recepción de flujos tanto absolutos como por habitante. El hecho de que el impacto de las carreteras sea potente y significativo en el estrato bajo, donde el flujo de remesas es históricamente bajo, confirma que la conectividad vial ejerce un rol estructural e independiente en la geografía económica del país, validando la naturaleza causal de la investigación.
+
+
+# Heterogeneidad Espacial Continua
+
+### Estimación jeraquica bayesiana de los efectos específicos
+
+Para complementar el análisis causal y proveer una herramienta útil para el diseño de políticas públicas a nivel territorial, se flexibilizó el supuesto de parámetros homogéneos mediante la estimación de un Modelo Bayesiano Jerárquico de efectos aleatorios o Poisson GLMM, siguiendo los lineamientos metodológicos de \textcite{gelman2006data}. Esta especificación permite descomponer la respuesta macroeconómica de Nicaragua en pendientes específicas (random slopes) para cada uno de los 153 municipios del país. Con el objetivo de garantizar la convergencia de las cadenas de Markov mediante el algoritmo MCMC, los regresores continuos fueron estandarizados de forma previa a la estimación y reescalados con posterioridad a sus unidades métricas originales para una correcta interpretación descriptiva. 
+
+Es fundamental precisar que, a diferencia de los modelos causales de efectos fijos bidireccionales discutidos en las secciones previas, este ejercicio jerárquico posee un carácter estrictamente descriptivo y de focalización espacial. Los resultados individuales por localidad demuestran una alta variabilidad geográfica en la sensibilidad de la actividad económica ante las fluctuaciones del ciclo macroeconómico.
+
+### Análisis de los canales logísticos locales
+
+Los coeficientes específicos estimados para la interacción de la densidad vial resultaron estadísticamente significativos y positivos en la gran mayoría del territorio nacional. Este patrón generalizado indica que, en el promedio de las economías locales, una mayor dotación de infraestructura vial tiende a incrementar la elasticidad descriptiva de la radianza nocturna respecto al ciclo del IMAE. Sin embargo, el modelo jerárquico fue capaz de aislar cuatro excepciones críticas: los municipios de Corinto, San Juan de Cinco Pinos, San Dionisio y San Juan de Limay (San Rafael del Norte)\footnote{En el catálogo filtrado por significancia matemática, los coeficientes de estas localidades se registran como valores perdidos debido a la regla de decisión bayesiana.}. En estos cuatro territorios, el intervalo de credibilidad del 95 por ciento incluye el cero, lo cual revela que su dinamismo económico interno se encuentra completamente desacoplado de las condiciones logísticas de su red vial.
+
+Por otro lado, el comportamiento del canal de escala geográfica muestra una regularidad empírica sorprendente. Los coeficientes asociados a la interacción del área territorial resultaron sistemáticamente negativos y estadísticamente significativos en los 153 municipios de Nicaragua. Este hallazgo descriptivo indica que el tamaño geográfico opera de forma uniforme como un factor de dispersión o atenuación de la intensidad lumínica frente a los shocks macroeconómicos agregados, confirmando que las fuerzas de aglomeración económica y la densidad de las conexiones físicas importan más que la mera extensión de la tierra.
+
+La utilidad de estos mapas de heterogénea continua radica en su capacidad de diagnóstico para la planificación de inversiones públicas. Al identificar con precisión matemática cuáles municipios muestran una sensibilidad exagerada frente al ciclo nacional y cuáles permanecen estancados o aislados de las fuerzas del mercado, las instituciones estatales pueden sectorizar los proyectos de infraestructura vial secundaria y caminos rurales, priorizando los recursos hacia los territorios donde el multiplicador logístico local posee un mayor potencial de integración comercial.
+
+\begin{figure}[H]
+\centering
+\begin{minipage}{1\textwidth}
+\caption{Heterogeneidad espacial continua de la resiliencia macroeconómica}
+\label{fig:mapa_bayesiano_heterogeneidad}
+\includegraphics[width=\textwidth]{../Graficos/mapa_estratos_terciles.pdf}
+\vspace{2mm}
+\small
+\textit{Nota:} Efectos marginales específicos obtenidos mediante un modelo bayesiano jerárquico Poisson (GLMM). Los municipios representados en gris claro indican que su intervalo de credibilidad del 95 por ciento incluye el cero, clasificándose como no significativos. El procesamiento dual de la estimación fue ejecutado en Python a través de la librería Bambi y ArviZ, y cartografiado en la interfaz de R. \\
+\textit{Fuente:} Elaboración propia a partir de datos de VIIRS-NASA, OpenStreetMap y el Banco Central de Nicaragua.
+\end{minipage}
+\end{figure}
 
 
 \newpage
@@ -512,3 +567,45 @@ Para descartar problemas de especificación funcional en el modelo Poisson TWFE,
 \textbf{Fuente:} Elaboración propia.
 \end{minipage}
 \end{figure}
+
+\subsection{Robustez ante la saturación técnica de radianza (Top-coding)}
+
+Una limitación metodológica relevante al utilizar datos de radiancia satelital nocturna como proxy de actividad económica es el fenómeno de saturación del sensor en áreas de alta densidad urbana, conocido en la literatura como top-coding \parencite{henderson2012measuring, donaldson2016view}. Cuando la luminosidad de una localidad alcanza el límite máximo de registro del instrumento óptico, el satélite pierde la capacidad de capturar variaciones marginales en el dinamismo económico de esa zona, lo que podría introducir sesgos sistemáticos en los coeficientes estimados.
+
+Para evaluar la sensibilidad de los hallazgos ante esta restricción física, se calculó el percentil 95 de la distribución empírica de la radianza en el panel completo. Posteriormente, se filtró la muestra excluyendo las 551 observaciones mensuales que superaron dicho umbral crítico y se volvió a estimar el modelo preferido Poisson PPML con errores estándar agrupados a nivel municipal. Los resultados comparativos se presentan en la Tabla \ref{tab:robustez_saturacion}.
+
+\begin{table}[H]
+\centering
+\small
+\begin{threeparttable}
+\caption{Prueba de robustez ante la saturación técnica de radianza satelital}
+\label{tab:robustez_saturacion}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}l c c}
+\toprule
+ & (1) & (2) \\
+Estimador: & Poisson PPML & Poisson PPML \\
+Muestra: & Muestra Completa & Sin Saturación (Radianza $\le$ P95) \\
+\midrule
+\textit{Variable dependiente} & $Luces_{it}$ & $Luces_{it}$ \\
+\midrule
+Canal Vial & -0.8474*** & -0.8585*** \\
+($\ln(D_i) \times \ln(IMAE_t)$) & (0.1926) & (0.2599) \\
+\addlinespace
+Canal Área & 0.0461 & 0.2019. \\
+($\ln(A_i) \times \ln(IMAE_t)$) & (0.0720) & (0.1160) \\
+\midrule
+Efectos fijos (Municipio y Mes) & Sí & Sí \\
+Errores estándar clusterizados & Sí & Sí \\
+Observaciones & 10,997 & 10,446 \\
+Ajuste (Pseudo-$R^2$ de McFadden) & 0.587 & 0.322 \\
+BIC & 11,931.8 & 9,948.2 \\
+\bottomrule
+\end{tabular*}
+\begin{tablenotes}
+\small
+\item \textit{Nota:} *** Significativo al 1\%, ** al 5\%, * al 10\%, . al 10\% de forma marginal. Errores estándar entre paréntesis agrupados a nivel municipal. La columna (1) reproduce el modelo principal del documento. La columna (2) reporta la estimación tras censurar el 5 por ciento de las observaciones más brillantes de la muestra para corregir el sesgo de saturación en los sensores de captura.
+\end{tablenotes}
+\end{threeparttable}
+\end{table}
+
+Como se observa en la columna 2, la exclusión de las observaciones potencialmente afectadas por la saturación del sensor no altera la consistencia de las estimaciones principales. El coeficiente asociado al canal vial experimenta una variación marginal en su magnitud absoluta, moviéndose hacia -0.8585, y preserva intacta su significancia estadística al nivel del 1 por ciento ($p < 0.01$). Este comportamiento confirma que el efecto amortiguador de la infraestructura de transporte no se encuentra condicionado por la distorsión de los pixeles más brillantes en las aglomeraciones urbanas dominantes, respaldando la validez y la estabilidad de la función de transmisión logística identificada a lo largo del territorio nacional.
