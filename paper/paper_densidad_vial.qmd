@@ -326,7 +326,7 @@ En el estrato alto, la radiancia exhibe niveles sistemáticamente superiores y u
 
 ### Modelo causal y mecanismos de transmisión
 
-Para identificar cómo la infraestructura condiciona la transmisión de los shocks macroeconómicos hacia las localidades, se estimaron diversas especificaciones del modelo de Efectos Fijos Bidireccionales (TWFE). Los resultados formales se consolidan en la Tabla \ref{tab:resultados_principales}. Con el objetivo de garantizar la robustez metodológica frente a problemas de heterocedasticidad espacial y autocorrelación serial, los errores estándar se calcularon agrupados (clustered) a nivel municipal.
+Para identificar cómo la infraestructura condiciona la transmisión de los shocks macroeconómicos hacia las localidades, se estimaron diversas especificaciones del modelo de Efectos Fijos Bidireccionales (TWFE). Los resultados formales se consolidan en la Tabla \ref{tab:resultados_principales}. Con el objetivo de garantizar la robustez metodológica frente a problemas de heterocedasticidad espacial y autocorrelación serial, los errores estándar se calcularon agrupados (clustered) a nivel municipal. La especificación preferida para la inferencia causal corresponde al modelo Poisson por Pseudo-Máximo Verosímil (PPML) de la columna 3, siguiendo los argumentos teóricos de \textcite{silva2006log}. Bajo la presencia de heterocedasticidad en los microdatos, la desigualdad de Jensen genera sesgos severos e inconsistencia en las estimaciones tradicionales de mínimos cuadrados de variables logarítmicas, un problema técnico que el estimador PPML resuelve de forma directa.
 
 \begin{table}[H]
 \centering
@@ -352,30 +352,26 @@ Canal Área & 0.4362*** & 0.4362*** & 0.0461 & 0.0490 & 0.3597*** \\
 Efectos fijos (Mun. y Mes) & Sí & Sí & Sí & Sí & Sí \\
 Errores clusterizados & No & Sí & Sí & Sí & Sí \\
 Observaciones & 10,997 & 10,997 & 10,997 & 10,809 & 10,809 \\
-Pseudo $R^2$ & 0.574 & 0.574 & 0.587 & 0.591 & 0.670 \\
+Ajuste ($R^2$ / Pseudo-$R^2$) & 0.574 & 0.574 & 0.587 & 0.591 & 0.670 \\
 BIC & 20,322.9 & 20,322.9 & 11,931.8 & 11,744.2 & 15,711.7 \\
 \bottomrule
 \end{tabular*}
 \begin{tablenotes}
 \small
-\item \textit{Nota:} *** Significativo al 1\%, ** al 5\%, * al 10\%. Errores estándar entre paréntesis agrupados a nivel municipal (excepto columna 1). La columna (3) representa la especificación causal preferida dada la superioridad del estimador PPML. Las columnas (4) y (5) evalúan la robustez al excluir observaciones altamente influyentes (residuos estandarizados absolutos $>3$).
+\item \textit{Nota:} *** Significativo al 1\%, ** al 5\%, * al 10\%. Errores estándar entre paréntesis agrupados a nivel municipal (excepto columna 1). La fila de ajuste reporta el $R^2$ dentro del grupo para los modelos OLS y el Pseudo-$R^2$ de McFadden para las especificaciones Poisson. Los criterios de información BIC son matemáticamente comparables únicamente dentro de la misma familia de modelos (columnas 1, 2 y 5 para mínimos cuadrados; columnas 3 y 4 para Poisson) debido a las diferencias de escala en la variable dependiente. Las columnas (4) y (5) evalúan la robustez al excluir observaciones altamente influyentes detectadas mediante residuos studentizados absolutos $>3$ calculados en la escala log-lineal.
 \end{tablenotes}
 \end{threeparttable}
 \end{table}
 
 ### El efecto amortiguador de la infraestructura
 
-El hallazgo central de la investigación reside en el coeficiente de la interacción vial (Canal Vial). A través de todas las especificaciones, el parámetro resulta consistentemente negativo y estadísticamente significativo. Bajo la especificación preferida Poisson PPML (columna 3), el estimador alcanza un valor de -0.8474. Aún más revelador resulta el modelo de la columna (4), donde, al restringir la muestra para eliminar las observaciones más influyentes o extremas \footnote{En este contexto, las observaciones con alto apalancamiento no representan errores de medición satelital o anomalías espurias (outliers tradicionales), sino verdaderas asimetrías estructurales en la geografía económica de Nicaragua. Por tanto, se preserva la muestra completa (columna 3) como el modelo principal de inferencia, empleando esta exclusión temporal (columna 4) estrictamente como una prueba de sensibilidad matemática.}, el efecto se fortalece alcanzando un coeficiente de -0.9220 (significativo al 1 por ciento).
+El hallazgo central de la investigación reside en el coeficiente de la interacción vial (Canal Vial). A través de todas las especificaciones, el parámetro resulta de signo negativo y estadísticamente significativo al 1 por ciento en el modelo principal. El hecho de que este parámetro se mantenga e incluso se fortalezca al transicionar de la muestra completa (columna 3: -0.8474) hacia la muestra que excluye las observaciones con mayor nivel de influencia en la regresión \footnote{En este contexto, las observaciones con alto apalancamiento no representan errores de medición satelital o anomalías espurias (outliers tradicionales), sino verdaderas asimetrías estructurales en la geografía económica de Nicaragua. Por tanto, se preserva la muestra completa (columna 3) como el modelo principal de inferencia, empleando esta exclusión temporal (columna 4) estrictamente como una prueba de sensibilidad matemática computada en la escala lineal.} (columna 4: -0.9220) demuestra que el fenómeno es regular y representativo del territorio nacional.
 
-En términos de econometría regional, este signo negativo demuestra que la red logística opera como un mecanismo amortiguador o de desacople cíclico estructural. El incremento de la magnitud en la muestra central (columna 4) comprueba que este fenómeno es la norma general en el país: una mayor densidad vial reduce matemáticamente la volatilidad económica de los municipios frente a los movimientos bruscos del ciclo nacional. Una dotación superior de infraestructura permite que los mercados locales alcancen un grado de autonomía y profundidad suficiente para protegerse de las crisis externas. 
-
-Como ilustración empírica, supóngase un escenario de recesión donde el IMAE nacional experimenta una contracción teórica del 10 por ciento. En municipios periféricos altamente desconectados, como Siuna o diversas zonas de la Costa Caribe, el aislamiento geográfico encarece los costos de transporte de forma prohibitiva, lo que provoca que la recesión se transfiera de forma íntegra o amplificada a la economía local. Por el contrario, en territorios urbanos altamente interconectados, como Managua o Estelí, la infraestructura densa protege el flujo comercial intrarregional y defiende el empleo, permitiendo que la caída local sea atenuada estructuralmente (diferencial de protección dictado por el coeficiente del -9.22%). 
-
-Este efecto de protección es simétrico. Durante las fases de expansión acelerada, las ciudades conectadas crecen a su propio ritmo estructural sin depender pasivamente del arrastre del ciclo agregado, lo cual comprueba que las carreteras dotan de resiliencia real al tejido productivo subnacional.
+En términos de la literatura de desarrollo regional, este comportamiento negativo describe un mecanismo de amortiguación o de desacople cíclico. Debido a que el estimador de la interacción no representa un efecto marginal fijo sino una función dependiente de las características geográficas de cada localidad, el impacto real de un shock macroeconómico sobre la actividad municipal varía continuamente. En municipios periféricos con una densidad vial deficiente, el aislamiento encarece los costos de transporte de forma prohibitiva, provocando que los shocks del ciclo nacional se transmitan de forma directa o amplificada a la economía local. Por el contrario, a medida que la densidad vial se incrementa, el efecto marginal del IMAE sobre la radiancia disminuye de forma sistemática. La presencia de una infraestructura de conectividad densa permite la profundización de los mercados internos locales, otorgando a las economías subnacionales una base de consumo autónoma que mitiga el impacto de las crisis económicas agregadas.
 
 ### Evidencia continua y controles de escala
 
-La Figura \ref{fig:panel_efectos_controles} complementa el análisis al ilustrar, en su panel A, cómo evoluciona la elasticidad de manera continua a lo largo de toda la distribución empírica de conectividad. Se observa claramente que, en niveles de densidad vial cercanos a cero, el efecto marginal es positivo, dejando a los territorios periféricos altamente vulnerables ante los shocks agregados. A medida que la red logística mejora (desplazamiento a lo largo del eje X), la línea de tendencia cae sistemáticamente hacia la zona negativa de protección macroeconómica, con intervalos de confianza estrechos que respaldan la precisión de la estimación.
+La Figura \ref{fig:panel_efectos_controles} complementa el análisis al ilustrar, en su panel A, la evolución del efecto marginal del IMAE de manera continua a lo largo de toda la distribución de la red vial. Cuando la densidad de carreteras es cercana a cero, la elasticidad neta es positiva, reflejando una vulnerabilidad extrema ante las fluctuaciones del ciclo. Conforme se avanza en el eje horizontal hacia niveles de infraestructura superiores, la elasticidad se reduce cruzando la frontera del cero y adentrándose en la zona de protección macroeconómica, con bandas de confianza estrechas que confirman la certidumbre estadística de la trayectoria. Evaluando la función en los niveles de densidad promedio observados en las principales cabeceras comerciales del Pacífico, el modelo predice una atenuación significativa de la vulnerabilidad cíclica en comparación con los territorios aislados de la Costa Caribe.
 
 \begin{figure}[H]
 \centering
@@ -383,17 +379,73 @@ La Figura \ref{fig:panel_efectos_controles} complementa el análisis al ilustrar
 \caption{Análisis de efectos marginales espaciales y ortogonalidad estructural}
 \label{fig:panel_efectos_controles}
 \includegraphics[width=\textwidth]{../Graficos/panel_efectos_y_controles_1x2.pdf}
-\vspace{2mm}
 \small
 \textit{Nota:} El panel A ilustra la trayectoria continua de la elasticidad neta frente a la densidad vial empírica, calculada bajo el modelo Poisson PPML con intervalos de confianza al 95\%. El panel B demuestra la dispersión conjunta entre el área geográfica y la densidad vial, garantizando la ausencia de multicolinealidad perfecta entre ambos controles logísticos. \\
-\textit{Fuente:} Estimaciones propias en R.
+\textit{Fuente:} Elaboración propia.
 \end{minipage}
 \end{figure}
 
 Por otro lado, la inclusión de la interacción espacial por escala geográfica (Canal Área) resulta un control empírico fundamental. Como lo evidencia el panel B de la gráfica superior, aunque los municipios geográficamente más grandes tienden a poseer una menor densidad vial (una dispersión descendente natural), la relación no es determinística. Esto garantiza la independencia y ortogonalidad estadística en las estimaciones. De manera concluyente, en las estimaciones Poisson PPML (Tabla \ref{tab:resultados_principales}, columnas 3 y 4), el coeficiente asociado al área territorial pierde por completo su significancia estadística. Este resultado es revelador, ya que descarta que el mero tamaño geográfico de un municipio funcione como un escudo económico, confirmando que el verdadero mecanismo de resiliencia subnacional es única y exclusivamente la conectividad vial construida.
+
+### Heterogeneidad estructural por estratos históricos
+
+Para verificar si el mecanismo de transmisión logística varía según el nivel de desarrollo histórico de las localidades, se segmentó la muestra en tres estratos independientes (alto, medio y bajo) utilizando terciles basados en el promedio histórico de la radianza nocturna de cada municipio. Las estimaciones por Pseudo-Máximo Verosímil (PPML) con errores estándar agrupados a nivel municipal se presentan en la Tabla \ref{tab:resultados_estratos}.
+
+\begin{table}[H]
+\centering
+\small
+\setlength{\tabcolsep}{2pt}
+\begin{threeparttable}
+\caption{Estimaciones por estratos históricos de desarrollo lumínico (Poisson PPML)}
+\label{tab:resultados_estratos}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}l c c c}
+\toprule
+ & (1) & (2) & (3) \\
+Estrato histórico: & Estrato Alto & Estrato Medio & Estrato Bajo \\
+\midrule
+\textit{Variable dependiente} & $Luces_{it}$ & $Luces_{it}$ & $Luces_{it}$ \\
+\midrule
+Canal Vial & -0.6666** & 0.1937 & 0.7413** \\
+($\ln(D_i) \times \ln(IMAE_t)$) & (0.2947) & (0.3060) & (0.2910) \\
+\addlinespace
+Canal Área & 0.0021 & -0.1073 & 0.7909*** \\
+($\ln(A_i) \times \ln(IMAE_t)$) & (0.0826) & (0.3151) & (0.2743) \\
+\midrule
+Efectos fijos (Municipio y Mes) & Sí & Sí & Sí \\
+Errores estándar clusterizados & Sí & Sí & Sí \\
+Observaciones & 3,670 & 3,667 & 3,660 \\
+Ajuste (Pseudo-$R^2$ de McFadden) & 0.495 & 0.041 & 0.064 \\
+BIC & 7,661.1 & 3,152.4 & 1,987.7 \\
+\bottomrule
+\end{tabular*}
+\begin{tablenotes}
+\small
+\item \textit{Nota:} *** Significativo al 1\%, ** al 5\%, * al 10\%. Errores estándar entre paréntesis agrupados a nivel municipal. El modelo (1) agrupa a las cabeceras urbanas y nodos comerciales densos; el modelo (2) representa a municipios en transición agrícola y semiurbanos; el modelo (3) concentra a los territorios periféricos e históricamente aislados del país.
+\end{tablenotes}
+\end{threeparttable}
+\end{table}
+
+Los resultados revelan una marcada asimetría no lineal a lo largo de la distribución del desarrollo subnacional. En los municipios del estrato alto, el coeficiente del canal vial se mantiene negativo y estadísticamente significativo al 5 por ciento (-0.6666). Esto confirma que para los polos urbanos y comerciales más consolidados, como Managua, León, Masaya o Estelí, la infraestructura de transporte consolidada opera efectivamente como un escudo o amortiguador que estabiliza el consumo y la producción local frente a los ciclos económicos agregados.
+
+Por el contrario, en los municipios del estrato medio, el estimador asociado a la interacción vial pierde por completo su significancia estadística y su magnitud se reduce a niveles cercanos a cero (0.1937). Este comportamiento neutral sugiere una fase de transición donde las fuerzas de diversificación económica urbana y la dependencia de los ciclos primarios sectoriales se compensan, cancelando el efecto neto de la red logística sobre la elasticidad macroeconómica local.
+
+El hallazgo más disruptivo ocurre en los municipios del estrato bajo. En este grupo, compuesto por las regiones geográficamente más aisladas y con menor densidad lumínica basal, como Siuna, Waspán, El Rama o el Tortugero, el coeficiente del canal vial experimenta una inversión de signo completa, volviéndose positivo y estadísticamente significativo al 5 por ciento (0.7413). Asimismo, el canal de escala geográfica cobra una relevancia crítica en este segmento, alcanzando un valor de 0.7909 con una significancia del 1 por ciento.
+
+### Integración física versus dependencia financiera
+
+La inversión del signo econométrico en las zonas de menor desarrollo histórico aporta una prueba de consistencia crucial para la identificación del canal vial. Desde la perspectiva teórica de la economía regional, una relación positiva en el estrato bajo implica que en los territorios históricamente rezagados, la construcción de carreteras no actúa como un amortiguador, sino como un mecanismo de integración de mercados o multiplicador de conectividad. 
+
+En estas regiones de la frontera agrícola y minera, la adición de infraestructura de transporte rompe el aislamiento geográfico inicial, enlazando por primera vez a los productores locales con los centros de distribución nacional. En consecuencia, cuando la actividad agregada del país se expande, estos municipios conectados experimentan un crecimiento intensivo al colocar sus excedentes productivos en el mercado nacional. Sin embargo, esta conectividad también los vuelve vulnerables de forma simétrica: ante una contracción económica nacional, la demanda interna de estas localidades periféricas se deprime con mayor fuerza debido a su nueva dependencia comercial del resto del país.
+
+Finalmente, este comportamiento diferenciado permite desestimar de forma empírica la hipótesis de que el canal vial se encuentre sesgado por la omisión de las remesas familiares. Si el coeficiente estuviera capturando de forma espuria el dinero enviado del exterior, la significancia del canal vial debería concentrarse exclusivamente en los estratos alto y medio, los cuales abarcan a los municipios de mayor tradición migratoria y recepción de flujos tanto absolutos como por habitante. El hecho de que el impacto de las carreteras sea potente y significativo en el estrato bajo, donde el flujo de remesas es históricamente bajo, confirma que la conectividad vial ejerce un rol estructural e independiente en la geografía económica del país, validando la naturaleza causal de la investigación.
+
+
 \newpage
 
-\printbibliography
+# Referencias {.unnumbered}
+
+::: {#refs}
+:::
 
 \newpage
 
