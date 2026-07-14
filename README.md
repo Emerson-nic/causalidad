@@ -24,10 +24,10 @@ El estudio estima cómo la densidad de la red vial modula la transmisión de los
 
 1.  Clonar el repositorio:
 
-        git clone https://github.com/emerlopez/actividad_economica_via.git
-        cd actividad_economica_via
+        git clone https://github.com/Emerson-nic/road-infrastructure-nicaragua-viirs.git
+        cd road-infrastructure-nicaragua-viirs
 
-2.  Abrir el proyecto en RStudio (`actividad_economica_via.Rproj`) o establecer el directorio de trabajo en la raíz del repositorio.
+2.  Abrir el proyecto en RStudio o establecer el directorio de trabajo en la raíz del repositorio.
 
 3.  Ejecutar los scripts en orden:
 
@@ -37,19 +37,18 @@ El estudio estima cómo la densidad de la red vial modula la transmisión de los
 
 4.  Compilar el documento:
 
-        quarto render paper/paper_densidad_vial.qmd --to pdf
+    quarto render paper/paper_densidad_vial.qmd --to pdf
 
     El PDF se generará en `paper/paper_densidad_vial.pdf`.
 
 ## Estructura del repositorio
 
     actividad_economica_via/
-    ├── csv/                    # Datos procesados (panel_final.csv)
-    ├── dataset/                # Fuentes originales descargadas
-    ├── Graficos/               # Figuras generadas por los scripts
-    ├── paper/                  # Documento .qmd, referencias .bib y PDF
-    ├── Scripts/                # Código de estimación y procesamiento
-    ├── actividad_economica_via.Rproj
+    ├── csv/ # Datos procesados (panel_final.csv)
+    ├── dataset/ # Fuentes originales descargadas
+    ├── Graficos/ # Figuras generadas por los scripts
+    ├── paper/ # Documento .qmd, referencias .bib y PDF
+    ├── Scripts/ # Código de estimación y procesamiento
     └── README.md
 
 ## Citación
