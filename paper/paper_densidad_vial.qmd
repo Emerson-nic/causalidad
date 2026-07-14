@@ -1,11 +1,10 @@
 ---
 title: "Infraestructura vial como amortiguador cíclico: evidencia causal con luces nocturnas en municipios de Nicaragua"
-# author:
-#   - Emerson López
-date: "Julio de 2026"
-date-format: "D [de] MMMM [de] YYYY"
+author: "Luces Nocturnas"
+# date: 2026-07-14
+# date-format: "D [de] MMMM [de] YYYY"
 lang: es
-keywords: [luces nocturnas, densidad vial, shocks macroeconómicos, heterogeneidad espacial, datos de panel, Poisson TWFE, Nicaragua]
+keywords: [luces nocturnas, densidad vial, shocks macroeconómicos, heterogeneidad espacial, datos de panel]
 jel: [C23, O18, R11, R12]
 format:
   pdf:
@@ -14,13 +13,13 @@ format:
     bibliography: referencias.bib
     biblio-style: apa
     documentclass: article
-    classoption: [12pt, a4paper]
+    classoption: [12pt, letterpaper]
     keep-tex: true
     fig-caption: true
     number-sections: true
     geometry:
       - margin=2.5cm
-    linestretch: 1.5
+    linestretch: 1
     colorlinks: true
     linkcolor: blue
     urlcolor: blue
@@ -29,6 +28,7 @@ format:
       text: |
         % idioma 
         \usepackage{csquotes}
+        \usepackage{tgtermes}
 
         % matematicas y simbolos
         \usepackage{amsmath}
@@ -66,9 +66,8 @@ format:
         % encabezado
         \usepackage{fancyhdr}
         \fancyhf{}
-        \fancyhead[L]{Infraestructura Vial y Resiliencia Macroeconómica Local}
-        \fancyhead[R]{\thepage}
-        \renewcommand{\headrulewidth}{0.4pt}
+        \fancyfoot[R]{\thepage}
+        \renewcommand{\headrulewidth}{0pt}
         \pagestyle{fancy}
 ---
 
@@ -79,8 +78,8 @@ format:
 Este artículo evalúa empíricamente cómo la infraestructura vial condiciona la transmisión de los shocks macroeconómicos nacionales hacia las economías locales de Nicaragua. Para ello, se estructuró un panel mensual que abarca los 153 municipios del país durante el período 2020--2025. Se utiliza la luminosidad nocturna satelital (NASA VIIRS) como un proxy de alta frecuencia para la actividad económica, integrada con datos geoespaciales de OpenStreetMap para calcular la densidad de carreteras y el área territorial. La estrategia empírica emplea un enfoque dual: un modelo causal de Efectos Fijos Bidireccionales (TWFE) bajo una especificación Poisson con errores agrupados, y una exploración espacial continua mediante un modelo bayesiano jerárquico. Los resultados revelan una profunda asimetría espacial que depende del nivel de desarrollo histórico del territorio. En las cabeceras urbanas consolidadas, la red vial actúa como un escudo estructural que disipa los shocks y amortigua la volatilidad del ciclo nacional. Por el contrario, en los municipios rezagados de la periferia, las carreteras operan como un multiplicador cíclico de vulnerabilidad: potencian el crecimiento local durante los auges agregados, pero profundizan drásticamente las contracciones en tiempos de crisis. Estos hallazgos aportan evidencia empírica crucial para el diseño de políticas de inversión en infraestructura con un enfoque de resiliencia macroeconómica regional.
 \end{abstract}
 
-\vspace{0.3cm}
-\noindent Palabras clave: luces nocturnas, densidad vial, shocks macroeconómicos, heterogeneidad espacial, datos de panel, modelo Poisson TWFE, Nicaragua.
+\vspace{0.15cm}
+\noindent Palabras clave: luces nocturnas, densidad vial, shocks macroeconómicos, heterogeneidad espacial, datos de panel.
 
 \newpage
 
@@ -96,7 +95,9 @@ Los hallazgos de esta investigación revelan que el rol de la infraestructura de
 
 Esta evidencia aporta implicaciones directas para el diseño de políticas públicas, demostrando que la inversión en conectividad vial en economías en desarrollo no solo genera retornos en eficiencia comercial, sino que altera la vulnerabilidad cíclica de los territorios. El resto del documento se estructura de la siguiente manera: la Sección 2 revisa la literatura previa; la Sección 3 describe la construcción del panel de datos y las variables; la Sección 4 detalla la estrategia metodológica; la Sección 5 valida el uso de luces nocturnas como proxy económico; la Sección 6 discute los resultados causales empíricos, los mecanismos sectoriales y los diagnósticos de robustez; la Sección 7 explora la heterogeneidad municipal mediante estimación bayesiana; y finalmente, la Sección 8 presenta la discusión y las conclusiones de la investigación.
 
-Para garantizar la reproducibilidad computacionalg, la estrategia empírica se implementó mediante un ecosistema de programación dual. El procesamiento de datos geográficos y la estimación principal de efectos fijos bidireccionales (TWFE) se ejecutaron en R, utilizando las librerías sf \parencite{pebesma2018simple} y fixest \parencite{berge2018efficient}. El modelo jerárquico bayesiano se programó en Python con Bambi \parencite{capretto2022bambi} y los diagnósticos de convergencia se realizaron con ArviZ \parencite{kumar2019arviz}. Los datos procesados, el código de estimación y las figuras están disponibles en el repositorio público del proyecto: \url{https://github.com/Emerson-nic/road-infrastructure-nicaragua-viirs} (\url{https://codeberg.org/Emerson-nic/road-infrastructure-nicaragua-viirs}).
+Para garantizar la reproducibilidad computacional, la estrategia empírica se implementó mediante un ecosistema de programación dual. El procesamiento de datos geográficos y la estimación principal de efectos fijos bidireccionales (TWFE) se ejecutaron en R, utilizando las librerías sf \parencite{pebesma2018simple} y fixest \parencite{berge2018efficient}. El modelo jerárquico bayesiano se programó en Python con Bambi \parencite{capretto2022bambi} y los diagnósticos de convergencia se realizaron con ArviZ \parencite{kumar2019arviz}. 
+
+<!-- Los datos procesados, el código de estimación y las figuras están disponibles en: \url{https://github.com/Emerson-nic/road-infrastructure-nicaragua-viirs} \url{https://codeberg.org/Emerson-nic/road-infrastructure-nicaragua-viirs} -->
 
 # Revisión de la Literatura
 
@@ -411,7 +412,7 @@ La distribución de los coeficientes obtenidos por azar se concentra simétricam
 
 \begin{figure}[H]
 \centering
-\begin{minipage}{0.85\textwidth}
+\begin{minipage}{0.55\textwidth}
 \caption{Distribución de los coeficientes placebo frente al valor estimado}
 \label{fig:placebo_histograma}
 \includegraphics[width=\textwidth]{../Graficos/placebo_permutacion_histograma.pdf}
@@ -420,6 +421,12 @@ La distribución de los coeficientes obtenidos por azar se concentra simétricam
 \textit{Fuente:} Elaboración propia.
 \end{minipage}
 \end{figure}
+
+## Heterogeneidad estructural por estratos históricos \label{sec:estratos}
+
+Con el propósito de evaluar si el efecto de la infraestructura vial es homogéneo entre territorios, la muestra se dividió en tres estratos según el nivel de luminosidad histórica. Los resultados de las estimaciones por estrato se presentan en la Tabla \ref{tab:resultados_estratos}.
+
+El comportamiento del Canal Vial difiere marcadamente entre grupos. En el estrato alto, que agrupa a los principales centros urbanos y comerciales, el coeficiente es negativo (−0.6666) y significativo al 5\%, consistente con un rol amortiguador de la infraestructura. En el estrato medio, el coeficiente no es estadísticamente significativo, lo que sugiere una fase de transición en la que los efectos se compensan. En el estrato bajo, compuesto por los municipios más aislados, el signo se invierte: el coeficiente es positivo (0.7268) y estadísticamente significativo. Adicionalmente, el Canal Área cobra relevancia en este grupo (0.7851, significativo al 1\%).
 
 \begin{table}[H]
 \centering
@@ -454,12 +461,6 @@ BIC & 7,661.1 & 3,152.4 & 1,987.7 \\
 \end{tablenotes}
 \end{threeparttable}
 \end{table}
-
-## Heterogeneidad estructural por estratos históricos \label{sec:estratos}
-
-Con el propósito de evaluar si el efecto de la infraestructura vial es homogéneo entre territorios, la muestra se dividió en tres estratos según el nivel de luminosidad histórica. Los resultados de las estimaciones por estrato se presentan en la Tabla \ref{tab:resultados_estratos}.
-
-El comportamiento del Canal Vial difiere marcadamente entre grupos. En el estrato alto, que agrupa a los principales centros urbanos y comerciales, el coeficiente es negativo (−0.6666) y significativo al 5\%, consistente con un rol amortiguador de la infraestructura. En el estrato medio, el coeficiente no es estadísticamente significativo, lo que sugiere una fase de transición en la que los efectos se compensan. En el estrato bajo, compuesto por los municipios más aislados, el signo se invierte: el coeficiente es positivo (0.7268) y estadísticamente significativo. Adicionalmente, el Canal Área cobra relevancia en este grupo (0.7851, significativo al 1\%).
 
 ### Integración física versus dependencia
 
@@ -636,27 +637,25 @@ Las limitaciones discutidas —el carácter exploratorio del modelo bayesiano je
 
 \subsection{Sensibilidad a la especificación del error}
 
-En datos de panel con alta frecuencia, la heterocedasticidad y la autocorrelación serial pueden subestimar los errores estándar. La Tabla \ref{tab:robustez_errores} compara el modelo Poisson PPML bajo tres supuestos de error: IID clásicos, robustos de White y agrupados por municipio (Arellano). Los coeficientes puntuales no varían, pero los errores estándar aumentan al aplicar la corrección más estricta. Pese a ello, el Canal Vial se mantiene significativo al 1\%, confirmando que el resultado no depende de la estructura de error elegida.
+La Tabla \ref{tab:robustez_errores} compara el modelo PPML bajo tres supuestos de error. Los coeficientes no varían, pero los errores estándar aumentan con la corrección más restrictiva. El Canal Vial se mantiene significativo al 1\%.
 
 \begin{table}[H]
-\centering
+\centering\small
 \begin{threeparttable}
-\caption{Sensibilidad estadística del modelo Poisson PPML ante estructuras alternativas de error}
+\caption{Sensibilidad del modelo PPML ante estructuras alternativas de error}
 \label{tab:robustez_errores}
-\begin{tabular}{l >{\centering\arraybackslash}p{3.3cm} >{\centering\arraybackslash}p{3.3cm} >{\centering\arraybackslash}p{3.3cm}}
+\begin{tabular}{l ccc}
 \toprule
- & \multicolumn{3}{c}{\textbf{Variable dependiente: $Luces_{it}$ (Estimador PPML)}} \\
+ & \multicolumn{3}{c}{$Luces_{it}$ (PPML)} \\
 \cmidrule(lr){2-4}
-\textbf{Variable explicativa} & \textbf{(1) IID Clásicos} & \textbf{(2) Robustos (White)} & \textbf{(3) Clustered (Arellano)} \\
+ & (1) IID & (2) White & (3) Arellano \\
 \midrule
-\multirow{2}{*}{Canal Vial} & -0.8474* & -0.8474*** & -0.8474*** \\
+Canal Vial & -0.8474* & -0.8474*** & -0.8474*** \\
  & (0.3424) & (0.1087) & (0.1926) \\
-\addlinespace
-\multirow{2}{*}{Canal Área} & 0.0461 & 0.0461 & 0.0461 \\
+Canal Área & 0.0461 & 0.0461 & 0.0461 \\
  & (0.1267) & (0.0394) & (0.0720) \\
 \midrule
-Efectos fijos de municipio & Sí & Sí & Sí \\
-Efectos fijos de mes & Sí & Sí & Sí \\
+EF municipio y mes & Sí & Sí & Sí \\
 Observaciones & 11,015 & 11,015 & 11,015 \\
 Pseudo $R^2$ & 0.587 & 0.587 & 0.587 \\
 BIC & 11,935.2 & 11,935.2 & 11,935.2 \\
@@ -664,61 +663,53 @@ BIC & 11,935.2 & 11,935.2 & 11,935.2 \\
 \end{tabular}
 \begin{tablenotes}
 \small
-\item \textit{Nota:} *** Significativo al 1\%, ** al 5\%, * al 10\%. Los coeficientes puntuales son matemáticamente idénticos; la variación radica en el cálculo de los errores estándar (entre paréntesis). La columna (3) corresponde a la especificación restrictiva del texto principal.
+\item *** p<0.01, ** p<0.05, * p<0.10. Errores estándar entre paréntesis. Col. (3) es la especificación del texto principal.
 \end{tablenotes}
 \end{threeparttable}
 \end{table}
 
 \subsection{Diagnóstico de residuos}
 
-La Figura \ref{fig:residuos_twfe} presenta los residuos del modelo frente a los valores ajustados. La mayoría de las observaciones se concentra en torno a cero, con una cola de residuos positivos que corresponde a los municipios de mayor luminosidad, en particular Managua y las cabeceras departamentales. Esta dispersión asimétrica es esperada en datos de luminosidad satelital con una distribución marcadamente sesgada a la derecha, donde unos pocos municipios urbanos concentran los valores más altos de la variable dependiente.
+La Figura \ref{fig:residuos_twfe} presenta los residuos del modelo frente a los valores ajustados. La mayoría de las observaciones se concentra en cero, con una cola positiva correspondiente a los municipios de mayor luminosidad, lo cual es esperable dada la distribución sesgada de la variable dependiente.
 
 \begin{figure}[H]
 \centering
 \begin{minipage}{0.85\textwidth}
-\caption{Distribución de residuos vs. Valores ajustados (Modelo Poisson PPML)}
+\caption{Residuos vs. valores ajustados (PPML)}
 \label{fig:residuos_twfe}
 \includegraphics[width=\textwidth]{../Graficos/distribucion_residuos_twfe.pdf}
-
 \small
-\textbf{Fuente:} Elaboración propia con datos obtenidos de NASA VIIRS, OpenStreetMap y el Banco Central de Nicaragua.
+\textbf{Fuente:} Elaboración propia.
 \end{minipage}
 \end{figure}
 
 \subsection{Robustez ante saturación del sensor (Top-coding)}
 
-Un riesgo al usar radiancia satelital es la saturación del sensor en zonas muy iluminadas, lo que podría subestimar la variación económica en centros urbanos \parencite{henderson2012measuring}. Para evaluar este sesgo, se excluyó el 5\% de las observaciones más brillantes (percentil 95) y se reestimó el modelo. Los resultados (Tabla \ref{tab:robustez_saturacion}) muestran que el coeficiente del Canal Vial se mantiene en -0.8585 y significativo al 1\%, indicando que la saturación del sensor no afecta la consistencia de las estimaciones principales.
+Para evaluar el sesgo por saturación del sensor, se excluyó el 5\% de las observaciones más brillantes y se reestimó el modelo (Tabla \ref{tab:robustez_saturacion}). El coeficiente del Canal Vial se mantiene en -0.8585 y significativo al 1\%, indicando que la saturación no afecta la consistencia de las estimaciones.
 
 \begin{table}[H]
-\centering
-\small
+\centering\small
 \begin{threeparttable}
-\caption{Prueba de robustez ante la saturación técnica de radianza satelital}
+\caption{Robustez ante saturación del sensor (top-coding)}
 \label{tab:robustez_saturacion}
-\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}l c c}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}l cc}
 \toprule
- & (1) & (2) \\
-Estimador: & Poisson PPML & Poisson PPML \\
-Muestra: & Muestra Completa & Sin Saturación (Radianza $\le$ P95) \\
-\midrule
-\textit{Variable dependiente} & $Luces_{it}$ & $Luces_{it}$ \\
+ & (1) Completa & (2) Sin saturación \\
 \midrule
 Canal Vial & -0.8474*** & -0.8585*** \\
-($\ln(D_i) \times \ln(IMAE_t)$) & (0.1926) & (0.2599) \\
-\addlinespace
+ & (0.1926) & (0.2599) \\
 Canal Área & 0.0461 & 0.2019. \\
-($\ln(A_i) \times \ln(IMAE_t)$) & (0.0720) & (0.1160) \\
+ & (0.0720) & (0.1160) \\
 \midrule
-Efectos fijos (Municipio y Mes) & Sí & Sí \\
-Errores estándar clusterizados & Sí & Sí \\
+EF municipio y mes & Sí & Sí \\
 Observaciones & 11,015 & 10,464 \\
-Ajuste (Pseudo-$R^2$ de McFadden) & 0.587 & 0.322 \\
+Pseudo $R^2$ & 0.587 & 0.322 \\
 BIC & 11,935.2 & 9,948.2 \\
 \bottomrule
 \end{tabular*}
 \begin{tablenotes}
 \small
-\item \textit{Nota:} *** Significativo al 1\%, ** al 5\%, * al 10\%, . al 10\% de forma marginal. Errores estándar entre paréntesis agrupados a nivel municipal. La columna (1) reproduce el modelo principal del documento. La columna (2) reporta la estimación tras censurar el 5 por ciento de las observaciones más brillantes de la muestra para corregir el sesgo de saturación en los sensores de captura. El Canal Área pasa de 0.0461 (no significativo) a 0.2019 (marginal al 10\%), posiblemente porque la censura elimina municipios urbanos densos y de área reducida, alterando la composición de la muestra.
+\item *** p<0.01, ** p<0.05, * p<0.10, . p<0.10 marginal. Errores estándar clusterizados por municipio. Col. (2) censura el percentil 95 de radiancia. Canal Área se vuelve marginal al 10\% posiblemente porque la censura elimina municipios urbanos densos de área reducida.
 \end{tablenotes}
 \end{threeparttable}
 \end{table}
