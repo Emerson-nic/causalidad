@@ -1,30 +1,28 @@
 if(F){
   "
-
  mapa de nic vista nocturna desde NASA VIIRS
  producto mensual VNP46A3: diciembre 2025
-
   "
 }
-
 options(repos = c(CRAN = "https://cloud.r-project.org"))
 if (!require("pacman")) install.packages("pacman")
-
 pacman::p_load(blackmarbler,
                terra,
                sf,
                ggplot2,
                dplyr,
-               viridis)
+               viridis,
+               ggrastr) 
 
 #limites de nicaragua
 ruta_mapa <- here::here("dataset", "geoBoundaries-NIC-ADM2.geojson")
 nic_sf <- sf::st_read(ruta_mapa, quiet = TRUE)
 nic_union <- sf::st_union(nic_sf)
 
-#proyectar limites a UTM 16N (pixeles uniformes)
+#proyectar a UTM Zona 16N (Nicaragua)
 nic_sf_utm <- sf::st_transform(nic_sf, "EPSG:32616")
 nic_union_utm <- sf::st_transform(nic_union, "EPSG:32616")
+nic_union_utm_sf <- sf::st_as_sf(nic_union_utm)
 
 #producto mensual: diciembre 2025
 r <- blackmarbler::bm_raster(
@@ -36,20 +34,33 @@ r <- blackmarbler::bm_raster(
   quiet = FALSE
 )
 
-#recortes
+#recortes iniciales
 r_nic <- terra::crop(r, terra::vect(nic_union))
 r_nic <- terra::mask(r_nic, terra::vect(nic_union))
 
-#proyectar raster a UTM 16N (pixeles cuadrados uniformes)
-r_utm <- terra::project(r_nic, "EPSG:32616")
+r_utm <- terra::project(r_nic, "EPSG:32616", method = "bilinear")
 
-#agregar a 2km (menos pixeles -> sin grilla visible)
-r_utm <- terra::aggregate(r_utm, fact = 4, fun = "mean", na.rm = TRUE)
+gauss_k <- terra::focalMat(r_utm, d = 1200, type = "Gauss")
+r_smooth <- terra::focal(r_utm, w = gauss_k, na.rm = TRUE)
+
+umbral_ruido <- 0.3
+r_smooth[r_smooth < umbral_ruido] <- 0
+
+#pixeles mas pequeños
+r_fine <- terra::disagg(r_smooth, fact = 2, method = "bilinear")
+r_fine <- terra::mask(r_fine, terra::vect(nic_union_utm))
 
 #dataframe completo
-df <- as.data.frame(r_utm, xy = TRUE, na.rm = FALSE)
+df <- as.data.frame(r_fine, xy = TRUE, na.rm = FALSE)
 names(df) <- c("x", "y", "radiancia")
 df <- df %>% dplyr::filter(!is.na(radiancia))
+
+#redondeo 
+df <- df %>%
+  dplyr::mutate(
+    x = round(x, 2),
+    y = round(y, 2)
+  )
 
 #winsorizar al 99%
 positivos <- df$radiancia[df$radiancia > 0]
@@ -58,32 +69,42 @@ if(length(positivos) > 0){
   df <- df %>% dplyr::mutate(radiancia = ifelse(radiancia > max_val, max_val, radiancia))
 }
 
-#grafico: sin warnings, sin grilla, sin pixelacion
+#grafico final de super resolucion
 p <- ggplot() +
-  geom_tile(data = df, aes(x = x, y = y, fill = radiancia)) +
-  scale_fill_viridis_c(
-    option = "inferno",
-    direction = 1,
-    na.value = "white",
-    name = expression(atop("Radiancia", (nW%.%cm^{-2}%.%sr^{-1})))
+  ggrastr::rasterise(
+    geom_raster(data = df, aes(x = x, y = y, fill = radiancia), interpolate = TRUE),
+    dpi = 500
   ) +
-  geom_sf(data = nic_sf_utm, fill = NA, color = "grey60", linewidth = 0.08) +
-  geom_sf(data = nic_union_utm, fill = NA, color = "grey30", linewidth = 0.15) +
+  geom_sf(data = nic_sf_utm, fill = NA, color = "grey50", linewidth = 0.04, alpha = 0.5) +
+  geom_sf(data = nic_union_utm_sf, fill = NA, color = "grey30", linewidth = 0.3) +
+  scale_fill_viridis(
+    option = "inferno",
+    name = "Radiancia\n(nW/cm²/sr)",
+    na.value = "white",
+    trans = "sqrt" 
+  ) +
   coord_sf(expand = FALSE) +
   theme_void() +
   theme(
-    panel.background = element_rect(fill = "white", color = NA),
     plot.background = element_rect(fill = "white", color = NA),
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(),
-    legend.position = "bottom",
+    panel.background = element_rect(fill = "white", color = NA),
+    panel.border = element_blank(),
+    panel.grid = element_blank(),
+    legend.background = element_rect(fill = "white", color = NA),
+    legend.key = element_rect(fill = "white", color = NA),
     legend.text = element_text(color = "black", size = 8),
-    legend.title = element_text(color = "black", size = 9)
+    legend.title = element_text(color = "black", size = 9, face = "bold"),
+    legend.position = "right"
   )
+
+print(p)
 
 ggplot2::ggsave(
   here::here("Graficos", "mapa_satelital_nicaragua.pdf"),
-  plot = p, width = 8, height = 6, dpi = 300
+  plot = p, 
+  width = 8, 
+  height = 6, 
+  dpi = 500,
+  device = cairo_pdf,
+  bg = "white"
 )
-
-print(p)
