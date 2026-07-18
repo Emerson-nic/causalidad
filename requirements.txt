@@ -5,3 +5,4 @@ altair
 scipy
 folium
 streamlit-folium
+requests
