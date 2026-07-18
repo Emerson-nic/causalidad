@@ -3,3 +3,5 @@ pandas
 numpy
 altair
 scipy
+folium
+streamlit-folium
