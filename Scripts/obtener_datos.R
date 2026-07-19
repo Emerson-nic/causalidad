@@ -198,21 +198,21 @@ luces_limpias <- utils::read.csv(ruta_csv_final)
 
 head(luces_limpias, 15)
 
-#obtener la densidad_vial ----
-message("Fuente de datos: OpenStreetMap (Formato GeoJSON)")
-  
-#se descargo de https://overpass-turbo.eu/
-#con el siguiente script en la pagina:
-# [out:json][timeout:60];
-# area["ISO3166-1"="NI"]->.searchArea;
-# (
-#   // se pide solo lineas planas (ways) para evitar saturacion, incluyendo tramos largos
-#   way["highway"~"motorway|trunk|primary|secondary|tertiary|unclassified"](area.searchArea);
-# );
-# out body;
-# >;
-# out skel qt;
-#pesa alrededor de 80 mb el json, el pagina web se pone lenta al ejecutar cuidado
+#densidad vial ----
+message("Fuente de datos: OpenStreetMap con exportacion manual desde overpass-turbo.eu")
+
+# La red vial se descargó manualmente desde Overpass Turbo.
+# Consulta Overpass utilizada:
+#   [out:json][timeout:60];
+#   area["ISO3166-1"="NI"]->.searchArea;
+#   (
+#     way["highway"~"motorway|trunk|primary|secondary|tertiary|unclassified"](area.searchArea);
+#   );
+#   out body;
+#   >;
+#   out skel qt;
+# El archivo export.geojson (~80 MB) se descargó y guardó en dataset/
+# El script no ejecuta la consulta Overpass; usa el GeoJSON precargado.
 
 #cargar mapas
 ruta_municipios <- "dataset/geoBoundaries-NIC-ADM2.geojson"
