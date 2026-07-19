@@ -30,7 +30,6 @@ grafico_3_estrato_bajo.pdf
 
 #qmd
 paper/paper_densidad_vial.tex
-paper/paper_densidad_vial.pdf
 paper/paper_densidad_vial.aux
 paper/paper_densidad_vial.bbl
 paper/paper_densidad_vial.bcf
@@ -43,3 +42,6 @@ csv/*.csv
 
 #python
 __pycache__
+
+#opencode
+AGENTS.md
